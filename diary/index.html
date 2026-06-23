@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>毎日日記</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif;
+      background: #fdf6ee;
+      color: #333;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #7c5c3e;
+      color: white;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    header h1 { font-size: 1.2rem; font-weight: bold; }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+    }
+
+    .tab-btn {
+      background: rgba(255,255,255,0.15);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .tab-btn.active { background: rgba(255,255,255,0.35); font-weight: bold; }
+    .tab-btn:hover { background: rgba(255,255,255,0.25); }
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 24px 16px;
+    }
+
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* Cards */
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 0.82rem;
+      font-weight: bold;
+      color: #7c5c3e;
+      letter-spacing: 0.05em;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Editor form */
+    .form-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .form-row label {
+      font-size: 0.85rem;
+      color: #666;
+      min-width: 70px;
+    }
+
+    input[type="date"],
+    input[type="number"],
+    input[type="text"],
+    textarea,
+    select {
+      border: 1px solid #e0d6cc;
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      background: #fffdf9;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="date"]:focus,
+    input[type="number"]:focus,
+    input[type="text"]:focus,
+    textarea:focus { border-color: #7c5c3e; }
+
+    input[type="number"] { width: 90px; }
+
+    .unit { font-size: 0.82rem; color: #999; }
+
+    textarea {
+      width: 100%;
+      min-height: 100px;
+      resize: vertical;
+      line-height: 1.7;
+    }
+
+    /* Mood */
+    .mood-selector { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    .mood-btn {
+      font-size: 1.3rem;
+      background: none;
+      border: 2px solid transparent;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+
+    .mood-btn.selected { border-color: #7c5c3e; background: #f5ece3; }
+
+    /* Save button */
+    .save-btn {
+      background: #7c5c3e;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 28px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .save-btn:hover { background: #5f4530; }
+
+    .btn-row { display: flex; justify-content: flex-end; margin-top: 8px; }
+
+    /* Entry list */
+    .entry-card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+      margin-bottom: 12px;
+      position: relative;
+    }
+
+    .entry-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .entry-date { font-size: 0.85rem; font-weight: bold; color: #7c5c3e; }
+    .entry-mood { font-size: 1.1rem; }
+
+    .entry-section { margin-bottom: 8px; }
+    .entry-label {
+      font-size: 0.75rem;
+      color: #aaa;
+      margin-bottom: 2px;
+    }
+
+    .entry-body {
+      font-size: 0.95rem;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      color: #444;
+    }
+
+    .entry-vitals {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .vital-chip {
+      background: #f5ece3;
+      color: #7c5c3e;
+      border-radius: 20px;
+      padding: 3px 12px;
+      font-size: 0.82rem;
+    }
+
+    .delete-btn {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      background: none;
+      border: none;
+      color: #ccc;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+
+    .delete-btn:hover { color: #e05c5c; }
+
+    .empty-msg {
+      text-align: center;
+      color: #bbb;
+      padding: 32px 0;
+      font-size: 0.95rem;
+    }
+
+    /* Graph page */
+    .graph-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .graph-controls select { padding: 7px 12px; }
+
+    .chart-wrap {
+      position: relative;
+      height: 260px;
+      margin-bottom: 8px;
+    }
+
+    .section-title {
+      font-size: 0.82rem;
+      color: #aaa;
+      margin-bottom: 10px;
+      letter-spacing: 0.04em;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(60px);
+      background: #333;
+      color: white;
+      padding: 10px 22px;
+      border-radius: 24px;
+      font-size: 0.9rem;
+      opacity: 0;
+      transition: all 0.3s;
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* Fun activity tag list */
+    .tag-suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .tag {
+      background: #f0e8df;
+      color: #7c5c3e;
+      border: none;
+      border-radius: 14px;
+      padding: 3px 12px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .tag:hover { background: #e0d0c0; }
+
+    @media (max-width: 500px) {
+      .form-row { flex-direction: column; align-items: flex-start; }
+      input[type="number"] { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>📔 毎日日記</h1>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showPage('record')">記録</button>
+    <button class="tab-btn" onclick="showPage('list')">一覧</button>
+    <button class="tab-btn" onclick="showPage('graph')">グラフ</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- ========== 記録ページ ========== -->
+  <div class="page active" id="page-record">
+
+    <!-- 基本情報 -->
+    <div class="card">
+      <div class="card-title">📅 日付・気分</div>
+      <div class="form-row">
+        <label>日付</label>
+        <input type="date" id="entry-date">
+      </div>
+      <div class="form-row">
+        <label>気分</label>
+        <div class="mood-selector" id="mood-selector">
+          <button class="mood-btn" data-mood="😄">😄</button>
+          <button class="mood-btn" data-mood="😊">😊</button>
+          <button class="mood-btn" data-mood="😐">😐</button>
+          <button class="mood-btn" data-mood="😔">😔</button>
+          <button class="mood-btn" data-mood="😤">😤</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 好きなこと -->
+    <div class="card">
+      <div class="card-title">⭐ 今日の好きなこと（5分）</div>
+      <div class="form-row">
+        <label>やったこと</label>
+        <input type="text" id="fun-activity" placeholder="例：読書、散歩、音楽を聴いた" style="flex:1; min-width:180px;">
+      </div>
+      <div class="tag-suggestions" id="fun-tags"></div>
+      <div class="form-row" style="margin-top:10px;">
+        <label>メモ</label>
+        <input type="text" id="fun-memo" placeholder="一言メモ（任意）" style="flex:1; min-width:180px;">
+      </div>
+    </div>
+
+    <!-- 体重・血圧 -->
+    <div class="card">
+      <div class="card-title">💊 体重・血圧</div>
+      <div class="form-row">
+        <label>体重</label>
+        <input type="number" id="weight" step="0.1" placeholder="65.0">
+        <span class="unit">kg</span>
+      </div>
+      <div class="form-row">
+        <label>血圧（上）</label>
+        <input type="number" id="bp-sys" placeholder="120">
+        <span class="unit">mmHg</span>
+      </div>
+      <div class="form-row">
+        <label>血圧（下）</label>
+        <input type="number" id="bp-dia" placeholder="80">
+        <span class="unit">mmHg</span>
+      </div>
+      <div class="form-row">
+        <label>脈拍</label>
+        <input type="number" id="pulse" placeholder="72">
+        <span class="unit">bpm</span>
+      </div>
+    </div>
+
+    <!-- 日記本文 -->
+    <div class="card">
+      <div class="card-title">✏️ 今日の日記</div>
+      <textarea id="entry-text" placeholder="今日はどんな一日でしたか？"></textarea>
+    </div>
+
+    <div class="btn-row">
+      <button class="save-btn" onclick="saveEntry()">保存する</button>
+    </div>
+  </div>
+
+  <!-- ========== 一覧ページ ========== -->
+  <div class="page" id="page-list">
+    <div class="section-title">過去の記録</div>
+    <div id="entries-list"></div>
+  </div>
+
+  <!-- ========== グラフページ ========== -->
+  <div class="page" id="page-graph">
+    <div class="card">
+      <div class="card-title">📊 月次グラフ</div>
+      <div class="graph-controls">
+        <label>月を選択：</label>
+        <select id="graph-month" onchange="renderGraphs()"></select>
+      </div>
+
+      <div class="section-title">体重（kg）</div>
+      <div class="chart-wrap"><canvas id="chart-weight"></canvas></div>
+
+      <div class="section-title" style="margin-top:24px;">血圧（mmHg）</div>
+      <div class="chart-wrap"><canvas id="chart-bp"></canvas></div>
+
+      <div class="section-title" style="margin-top:24px;">今月の好きなこと</div>
+      <div id="fun-summary"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'diary_v2';
+
+let selectedMood = '';
+let chartWeight = null;
+let chartBP = null;
+
+// ---- Init ----
+document.getElementById('entry-date').value = today();
+
+// Mood
+document.getElementById('mood-selector').addEventListener('click', e => {
+  const btn = e.target.closest('.mood-btn');
+  if (!btn) return;
+  document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+  if (selectedMood === btn.dataset.mood) { selectedMood = ''; }
+  else { btn.classList.add('selected'); selectedMood = btn.dataset.mood; }
+});
+
+// Fun tag suggestions from past entries
+function refreshFunTags() {
+  const entries = loadEntries();
+  const acts = [...new Set(entries.map(e => e.funActivity).filter(Boolean))].slice(0, 12);
+  const container = document.getElementById('fun-tags');
+  container.innerHTML = acts.map(a =>
+    `<button class="tag" onclick="document.getElementById('fun-activity').value='${escHtml(a)}'">${escHtml(a)}</button>`
+  ).join('');
+}
+
+// ---- Storage ----
+function loadEntries() {
+  return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+}
+function saveEntries(entries) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+}
+
+// ---- Save ----
+function saveEntry() {
+  const date = document.getElementById('entry-date').value;
+  const text = document.getElementById('entry-text').value.trim();
+  const funActivity = document.getElementById('fun-activity').value.trim();
+  const funMemo = document.getElementById('fun-memo').value.trim();
+  const weight = parseFloat(document.getElementById('weight').value) || null;
+  const bpSys = parseInt(document.getElementById('bp-sys').value) || null;
+  const bpDia = parseInt(document.getElementById('bp-dia').value) || null;
+  const pulse = parseInt(document.getElementById('pulse').value) || null;
+
+  if (!text && !funActivity && !weight && !bpSys) {
+    showToast('何か入力してください');
+    return;
+  }
+
+  const entries = loadEntries();
+  const idx = entries.findIndex(e => e.date === date);
+  const entry = { date, mood: selectedMood, text, funActivity, funMemo, weight, bpSys, bpDia, pulse, savedAt: Date.now() };
+
+  if (idx >= 0) {
+    if (!confirm('この日の記録を上書きしますか？')) return;
+    entries[idx] = entry;
+  } else {
+    entries.push(entry);
+  }
+
+  entries.sort((a, b) => b.date.localeCompare(a.date));
+  saveEntries(entries);
+  clearForm();
+  refreshFunTags();
+  showToast('保存しました ✓');
+}
+
+function clearForm() {
+  document.getElementById('entry-date').value = today();
+  document.getElementById('entry-text').value = '';
+  document.getElementById('fun-activity').value = '';
+  document.getElementById('fun-memo').value = '';
+  document.getElementById('weight').value = '';
+  document.getElementById('bp-sys').value = '';
+  document.getElementById('bp-dia').value = '';
+  document.getElementById('pulse').value = '';
+  selectedMood = '';
+  document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+}
+
+// ---- Delete ----
+function deleteEntry(date) {
+  if (!confirm('この記録を削除しますか？')) return;
+  saveEntries(loadEntries().filter(e => e.date !== date));
+  renderList();
+  showToast('削除しました');
+}
+
+// ---- List ----
+function renderList() {
+  const entries = loadEntries();
+  const el = document.getElementById('entries-list');
+  if (!entries.length) { el.innerHTML = '<div class="empty-msg">まだ記録がありません</div>'; return; }
+  el.innerHTML = entries.map(e => {
+    const vitals = [];
+    if (e.weight) vitals.push(`体重 ${e.weight} kg`);
+    if (e.bpSys && e.bpDia) vitals.push(`血圧 ${e.bpSys}/${e.bpDia} mmHg`);
+    else if (e.bpSys) vitals.push(`血圧（上） ${e.bpSys} mmHg`);
+    if (e.pulse) vitals.push(`脈拍 ${e.pulse} bpm`);
+
+    return `
+    <div class="entry-card">
+      <div class="entry-top">
+        <span class="entry-date">${formatDate(e.date)}</span>
+        ${e.mood ? `<span class="entry-mood">${e.mood}</span>` : ''}
+      </div>
+      ${e.funActivity ? `
+        <div class="entry-section">
+          <div class="entry-label">⭐ 好きなこと</div>
+          <div class="entry-body">${escHtml(e.funActivity)}${e.funMemo ? `　<span style="color:#aaa;font-size:0.85rem">${escHtml(e.funMemo)}</span>` : ''}</div>
+        </div>` : ''}
+      ${vitals.length ? `<div class="entry-vitals">${vitals.map(v => `<span class="vital-chip">${v}</span>`).join('')}</div>` : ''}
+      ${e.text ? `
+        <div class="entry-section" style="margin-top:10px;">
+          <div class="entry-label">✏️ 日記</div>
+          <div class="entry-body">${escHtml(e.text)}</div>
+        </div>` : ''}
+      <button class="delete-btn" onclick="deleteEntry('${e.date}')" title="削除">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// ---- Graph ----
+function initMonthSelect() {
+  const entries = loadEntries();
+  const months = [...new Set(entries.map(e => e.date.slice(0, 7)))].sort().reverse();
+  const thisMonth = today().slice(0, 7);
+  if (!months.includes(thisMonth)) months.unshift(thisMonth);
+
+  const sel = document.getElementById('graph-month');
+  sel.innerHTML = months.map(m => `<option value="${m}">${m.replace('-', '年')}月</option>`).join('');
+}
+
+function renderGraphs() {
+  const month = document.getElementById('graph-month').value;
+  const entries = loadEntries().filter(e => e.date.startsWith(month)).sort((a, b) => a.date.localeCompare(b.date));
+
+  const labels = entries.map(e => e.date.slice(8) + '日');
+  const weights = entries.map(e => e.weight);
+  const bpSys = entries.map(e => e.bpSys);
+  const bpDia = entries.map(e => e.bpDia);
+
+  // Weight chart
+  if (chartWeight) chartWeight.destroy();
+  chartWeight = new Chart(document.getElementById('chart-weight'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: '体重 (kg)',
+        data: weights,
+        borderColor: '#7c5c3e',
+        backgroundColor: 'rgba(124,92,62,0.1)',
+        tension: 0.3,
+        pointRadius: 5,
+        fill: true,
+        spanGaps: true,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: false, grid: { color: '#f0e8df' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  // BP chart
+  if (chartBP) chartBP.destroy();
+  chartBP = new Chart(document.getElementById('chart-bp'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: '収縮期（上）',
+          data: bpSys,
+          borderColor: '#e07070',
+          backgroundColor: 'rgba(224,112,112,0.08)',
+          tension: 0.3,
+          pointRadius: 5,
+          spanGaps: true,
+        },
+        {
+          label: '拡張期（下）',
+          data: bpDia,
+          borderColor: '#70a0e0',
+          backgroundColor: 'rgba(112,160,224,0.08)',
+          tension: 0.3,
+          pointRadius: 5,
+          spanGaps: true,
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        y: { beginAtZero: false, grid: { color: '#f0e8df' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  // Fun activity summary
+  const funList = entries.filter(e => e.funActivity);
+  const counts = {};
+  funList.forEach(e => { counts[e.funActivity] = (counts[e.funActivity] || 0) + 1; });
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+
+  const el = document.getElementById('fun-summary');
+  if (!sorted.length) {
+    el.innerHTML = '<div class="empty-msg" style="padding:16px 0">この月の記録がありません</div>';
+  } else {
+    el.innerHTML = `<div class="tag-suggestions" style="margin-top:4px;">` +
+      sorted.map(([act, cnt]) =>
+        `<span class="vital-chip">⭐ ${escHtml(act)} <strong>${cnt}回</strong></span>`
+      ).join('') +
+      `</div>
+      <div style="margin-top:12px;font-size:0.85rem;color:#888;">合計 ${funList.length} 日 / ${entries.length} 日記録</div>`;
+  }
+}
+
+// ---- Tab navigation ----
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  event.target.classList.add('active');
+
+  if (name === 'list') renderList();
+  if (name === 'graph') { initMonthSelect(); renderGraphs(); }
+  if (name === 'record') refreshFunTags();
+}
+
+// ---- Util ----
+function today() { return new Date().toISOString().split('T')[0]; }
+
+function formatDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const days = ['日','月','火','水','木','金','土'];
+  return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日（${days[d.getDay()]}）`;
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ---- Startup ----
+refreshFunTags();
+</script>
+</body>
+</html>
