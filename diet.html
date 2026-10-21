@@ -235,7 +235,9 @@
   .seg { flex-wrap: wrap; }
   .entry-btns { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin-bottom: 12px; }
   .btn.big { padding: 14px 10px; font-size: 1rem; border-radius: 12px; }
-  .ph-img { width: 100%; max-height: 240px; object-fit: cover; border-radius: 12px; display: block; margin-bottom: 10px; background: var(--bg); }
+  .ph-imgs { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 10px; }
+  .ph-imgs img { height: 200px; max-width: 100%; object-fit: cover; border-radius: 12px; flex-shrink: 0; background: var(--bg); }
+  .ph-imgs.many img { height: 140px; max-width: 70%; }
   .ph-status { display: flex; align-items: center; gap: 10px; font-size: .88rem; }
   .ph-status:not(:empty) { padding: 10px 12px; border-radius: 10px; margin-bottom: 10px; }
   .ph-status.busy { background: var(--green-soft); color: var(--green-dark); }
@@ -305,7 +307,7 @@
         <button class="btn big" onclick="startPhoto()">📷 写真で記録</button>
         <button class="btn big ghost" onclick="openSheet()">✏️ 手入力</button>
       </div>
-      <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="onPhotoPicked(event)">
+      <input type="file" id="photo-input" accept="image/*" multiple style="display:none" onchange="onPhotoPicked(event)">
       <div id="meals"></div>
     </div>
 
@@ -563,7 +565,7 @@
 <!-- 写真判定シート -->
 <div class="sheet" id="photo-sheet">
   <h2><span>📷 写真で記録</span><button class="icon-btn" onclick="closeSheet()" style="font-size:1.3rem">✕</button></h2>
-  <img id="ph-img" class="ph-img" alt="食事の写真">
+  <div id="ph-imgs" class="ph-imgs"></div>
   <div id="ph-status" class="ph-status"></div>
   <div id="ph-result">
     <div class="meal-tabs" id="ph-tabs"></div>
@@ -575,7 +577,10 @@
     <button class="btn ghost" id="ph-retry" onclick="analyzePhoto()">もう一度判定</button>
   </div>
   <button class="btn block" id="ph-save" onclick="savePhotoMeal()">この内容で記録する</button>
-  <button class="btn block ghost" style="margin-top:8px" onclick="closeSheet();startPhoto()">別の写真にする</button>
+  <div class="two" style="margin-top:8px">
+    <button class="btn ghost" onclick="startPhoto(true)">＋ 写真を追加</button>
+    <button class="btn ghost" onclick="closeSheet();startPhoto()">撮り直す</button>
+  </div>
 </div>
 
 <!-- APIキー案内シート -->
@@ -1711,6 +1716,9 @@ const FOOD_SYSTEM = `あなたは日本の管理栄養士です。食事の写�
 - 見えない部分（中身や下に隠れた分）は一般的な量を仮定し、判断に自信がない品は confidence を low にしてください。
 - パッケージ商品で栄養成分表示が読める場合は、その値を使ってください。
 - 食べ物が写っていない場合は dishes を空にし、note に理由を書いてください。
+- 写真が複数ある場合は、同じ食事を別の角度や別の皿で撮ったものです。複数の写真に写っている同じ料理は1回だけ数えてください。
+- 大皿の料理や家族の分が一緒に写っている場合は、1人分として推定し、portion に「1人分」と書いてください。
+- 食べ終わった後の空の容器（納豆のパックなど）が写っていれば、1人分食べたものとして含めてください。
 - note は食事全体への前向きな一言アドバイス（40字以内）にしてください。`;
 
 function apiKey() { return (data.settings.apiKey || '').trim(); }
@@ -1720,8 +1728,12 @@ async function getClient() {
   return new AnthropicLib({ apiKey: apiKey(), dangerouslyAllowBrowser: true, maxRetries: 1 });
 }
 
-function startPhoto() {
+const MAX_PHOTOS = 4;
+let appendPhotos = false;
+function startPhoto(append) {
   if (!apiKey()) { showSheet('key-sheet'); return; }
+  appendPhotos = !!append && !!photo;
+  if (appendPhotos && photo.images.length >= MAX_PHOTOS) { toast(`写真は${MAX_PHOTOS}枚までです`); return; }
   const inp = document.getElementById('photo-input');
   inp.value = '';
   inp.click();
@@ -1746,17 +1758,31 @@ function resizeImage(file, max, quality) {
 }
 
 async function onPhotoPicked(ev) {
-  const file = ev.target.files && ev.target.files[0];
-  if (!file) return;
+  let files = Array.from((ev.target.files) || []);
+  if (!files.length) return;
+  const have = appendPhotos ? photo.images.length : 0;
+  if (have + files.length > MAX_PHOTOS) {
+    files = files.slice(0, MAX_PHOTOS - have);
+    toast(`写真は${MAX_PHOTOS}枚までです。最初の${files.length}枚を使います`);
+  }
   try {
-    const full = await resizeImage(file, 1024, 0.85);
-    const thumb = await resizeImage(file, 160, 0.6);
-    photo = { id: uid(), b64: full.split(',')[1], preview: full, thumb, dishes: [], type: guessMeal(), note: '' };
-    document.getElementById('ph-img').src = full;
-    document.getElementById('ph-hint').value = '';
+    const fulls = await Promise.all(files.map(f => resizeImage(f, 1024, 0.85)));
+    if (!appendPhotos) {
+      const thumb = await resizeImage(files[0], 160, 0.6);
+      photo = { id: uid(), images: [], thumb, dishes: [], type: guessMeal(), note: '' };
+      document.getElementById('ph-hint').value = '';
+    }
+    photo.images.push(...fulls);
+    renderPhotoImages();
     showSheet('photo-sheet');
     analyzePhoto();
   } catch (e) { toast(e.message || '画像を読み込めませんでした'); }
+}
+
+function renderPhotoImages() {
+  const box = document.getElementById('ph-imgs');
+  box.classList.toggle('many', photo.images.length > 1);
+  box.innerHTML = photo.images.map((src, i) => `<img src="${src}" alt="食事の写真${i + 1}">`).join('');
 }
 
 async function analyzePhoto() {
@@ -1775,8 +1801,8 @@ async function analyzePhoto() {
       messages: [{
         role: 'user',
         content: [
-          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: photo.b64 } },
-          { type: 'text', text: 'この食事に写っている料理と量、カロリー・PFCを推定してください。' + (hint ? `\n補足：${hint}` : '') },
+          ...photo.images.map(src => ({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: src.split(',')[1] } })),
+          { type: 'text', text: (photo.images.length > 1 ? `${photo.images.length}枚の写真は同じ1回の食事です。` : '') + 'この食事に写っている料理と量、カロリー・PFCを推定してください。' + (hint ? `\n補足：${hint}` : '') },
         ],
       }],
     });

@@ -1,5 +1,5 @@
 // オフラインでも開けるようにするための仕組み
-const CACHE = 'mydiet-v3';
+const CACHE = 'mydiet-v4';
 const FILES = [
   './diet.html', './index.html', './manifest.webmanifest', './diary.webmanifest',
   './icons/diary-180.png', './icons/diary-192.png', './icons/diary-512.png',
