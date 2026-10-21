@@ -1,4 +1,5 @@
 {
+  "id": "./diet.html",
   "name": "マイダイエット",
   "short_name": "ダイエット",
   "description": "減量・食事管理・ToDoの自分専用アプリ",
@@ -9,7 +10,17 @@
   "background_color": "#f5f8f6",
   "theme_color": "#2f8f6a",
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
   ]
 }

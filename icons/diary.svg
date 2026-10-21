@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a07a55"/>
+      <stop offset="1" stop-color="#6b4c31"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <!-- ノート -->
+  <rect x="136" y="104" width="250" height="310" rx="22" fill="#fdf6ee"/>
+  <rect x="136" y="104" width="44" height="310" rx="18" fill="#f2c9a0"/>
+  <rect x="160" y="104" width="20" height="310" fill="#f2c9a0"/>
+  <!-- 罫線 -->
+  <g stroke="#e3d2bf" stroke-width="10" stroke-linecap="round">
+    <line x1="214" y1="270" x2="352" y2="270"/>
+    <line x1="214" y1="314" x2="352" y2="314"/>
+    <line x1="214" y1="358" x2="312" y2="358"/>
+  </g>
+  <!-- ハート -->
+  <path d="M283 232 C283 232 228 198 228 166 C228 146 244 134 260 134 C271 134 279 140 283 148 C287 140 295 134 306 134 C322 134 338 146 338 166 C338 198 283 232 283 232Z" fill="#e07070"/>
+  <!-- しおり -->
+  <path d="M340 104 v70 l16 -14 l16 14 v-70Z" fill="#7cc4a0"/>
+</svg>

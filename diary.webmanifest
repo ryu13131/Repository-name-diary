@@ -1,0 +1,16 @@
+{
+  "id": "./index.html",
+  "name": "毎日日記",
+  "short_name": "日記",
+  "description": "気分・好きなこと・体重・血圧を記録する毎日の日記",
+  "lang": "ja",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fdf6ee",
+  "theme_color": "#7c5c3e",
+  "icons": [
+    { "src": "icons/diary-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/diary-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

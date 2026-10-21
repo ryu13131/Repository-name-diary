@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>毎日日記</title>
+  <meta name="theme-color" content="#7c5c3e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="日記">
+  <link rel="manifest" href="diary.webmanifest">
+  <link rel="apple-touch-icon" href="icons/diary-180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/diary-192.png">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -654,7 +661,10 @@ function showPage(name) {
 }
 
 // ---- Util ----
-function today() { return new Date().toISOString().split('T')[0]; }
+function today() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 function formatDate(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
@@ -675,6 +685,11 @@ function showToast(msg) {
 
 // ---- Startup ----
 refreshFunTags();
+
+// ホーム画面アプリ用（オフライン対応）
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
 </script>
 </body>
 </html>
