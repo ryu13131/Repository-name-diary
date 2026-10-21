@@ -1,0 +1,1655 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#2f8f6a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ダイエット">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<title>マイダイエット</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --green: #2f8f6a;
+    --green-dark: #23704f;
+    --green-soft: #e6f4ee;
+    --bg: #f5f8f6;
+    --card: #ffffff;
+    --text: #263330;
+    --muted: #7b8a86;
+    --line: #e2ebe7;
+    --warn: #e0803b;
+    --danger: #d65a5a;
+    --p: #5b8def;
+    --f: #f0a43a;
+    --c: #4fb38a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); }
+  body {
+    font-family: 'Hiragino Sans', 'Yu Gothic', 'Noto Sans JP', sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+  button { font-family: inherit; cursor: pointer; }
+  input, select, textarea { font-family: inherit; font-size: 16px; }
+
+  header {
+    background: var(--green);
+    color: #fff;
+    padding: 12px 16px;
+    padding-top: calc(12px + env(safe-area-inset-top));
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  header h1 { font-size: 1.1rem; }
+  header a { color: #fff; font-size: 0.8rem; opacity: .85; text-decoration: none; }
+
+  .container { max-width: 640px; margin: 0 auto; padding: 16px; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  .card {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: 0 1px 6px rgba(0,0,0,.05);
+    margin-bottom: 14px;
+  }
+  .card-title {
+    font-size: .85rem; font-weight: bold; color: var(--green-dark);
+    margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .muted { color: var(--muted); font-size: .8rem; }
+
+  /* Date nav */
+  .date-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .date-nav button {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    width: 40px; height: 40px; font-size: 1.1rem; color: var(--green-dark);
+  }
+  .date-nav .date-label { font-weight: bold; text-align: center; }
+  .date-nav .date-label small { display: block; color: var(--muted); font-weight: normal; font-size: .75rem; }
+
+  /* Calorie summary */
+  .kcal-wrap { display: flex; align-items: center; gap: 16px; }
+  .ring { position: relative; width: 120px; height: 120px; flex-shrink: 0; }
+  .ring svg { transform: rotate(-90deg); }
+  .ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .ring-center .big { font-size: 1.5rem; font-weight: bold; line-height: 1.1; }
+  .ring-center .small { font-size: .7rem; color: var(--muted); }
+  .kcal-stats { flex: 1; display: grid; gap: 6px; font-size: .85rem; }
+  .kcal-stats div { display: flex; justify-content: space-between; }
+  .kcal-stats b { font-variant-numeric: tabular-nums; }
+
+  .pfc { margin-top: 14px; display: grid; gap: 8px; }
+  .pfc-row { display: grid; grid-template-columns: 64px 1fr 92px; align-items: center; gap: 8px; font-size: .8rem; }
+  .bar { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; }
+  .bar > span { display: block; height: 100%; border-radius: 4px; transition: width .3s; }
+  .pfc-row .num { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  /* Meals */
+  .meal-group { border-top: 1px solid var(--line); padding: 10px 0; }
+  .meal-group:first-of-type { border-top: none; padding-top: 0; }
+  .meal-head { display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: .9rem; }
+  .meal-head .sum { color: var(--muted); font-weight: normal; font-size: .8rem; }
+  .meal-item { display: flex; align-items: center; gap: 8px; padding: 6px 0 6px 8px; font-size: .88rem; }
+  .meal-item .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .meal-item .kc { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .icon-btn { background: none; border: none; color: #b8c4c0; font-size: 1rem; padding: 4px 6px; }
+  .add-btn {
+    background: var(--green-soft); color: var(--green-dark); border: none; border-radius: 8px;
+    padding: 6px 12px; font-size: .8rem; font-weight: bold;
+  }
+
+  /* Weight / water */
+  .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .input {
+    border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; background: #fbfdfc; outline: none;
+    min-width: 0;
+  }
+  .input:focus { border-color: var(--green); }
+  .unit { color: var(--muted); font-size: .85rem; }
+  .btn {
+    background: var(--green); color: #fff; border: none; border-radius: 10px; padding: 10px 16px; font-weight: bold; font-size: .9rem;
+  }
+  .btn.secondary { background: var(--green-soft); color: var(--green-dark); }
+  .btn.ghost { background: #fff; color: var(--text); border: 1px solid var(--line); }
+  .btn.danger { background: #fff; color: var(--danger); border: 1px solid #f0caca; }
+  .btn.block { width: 100%; }
+
+  .water { display: flex; gap: 6px; flex-wrap: wrap; }
+  .cup {
+    width: 34px; height: 40px; border-radius: 6px 6px 10px 10px; border: 2px solid #b9d9ef; background: #fff;
+    font-size: 1rem; display: flex; align-items: center; justify-content: center; padding: 0;
+  }
+  .cup.full { background: #cfe8f8; border-color: #6fb3e0; }
+
+  /* Rules */
+  .rule { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); font-size: .9rem; }
+  .rule:first-child { border-top: none; }
+  .check {
+    width: 26px; height: 26px; border-radius: 8px; border: 2px solid #c9d6d1; background: #fff; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; color: #fff; font-size: .9rem; padding: 0;
+  }
+  .check.on { background: var(--green); border-color: var(--green); }
+  .streak:empty { display: none; }
+  .streak { background: #fff4e6; color: #b5651d; border-radius: 20px; padding: 3px 10px; font-size: .75rem; font-weight: bold; }
+
+  textarea.input { width: 100%; min-height: 60px; resize: vertical; line-height: 1.6; }
+
+  /* Progress */
+  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stat { background: var(--bg); border-radius: 10px; padding: 10px 8px; text-align: center; }
+  .stat .v { font-size: 1.15rem; font-weight: bold; font-variant-numeric: tabular-nums; }
+  .stat .l { font-size: .7rem; color: var(--muted); margin-top: 2px; }
+  .progress { height: 12px; background: var(--line); border-radius: 6px; overflow: hidden; margin: 12px 0 6px; }
+  .progress span { display: block; height: 100%; background: linear-gradient(90deg, #6fcf9f, var(--green)); }
+  .chart-box { position: relative; height: 220px; }
+  .seg { display: inline-flex; background: var(--bg); border-radius: 8px; padding: 2px; }
+  .seg button { border: none; background: none; padding: 4px 10px; border-radius: 6px; font-size: .75rem; color: var(--muted); }
+  .seg button.on { background: #fff; color: var(--green-dark); font-weight: bold; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+
+  /* Settings */
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
+  .field .input, .field select { width: 100%; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .calc-box { background: var(--green-soft); border-radius: 10px; padding: 12px; font-size: .85rem; line-height: 1.8; }
+  .calc-box b { font-variant-numeric: tabular-nums; }
+  .warn { color: var(--warn); font-size: .8rem; margin-top: 6px; }
+
+  /* Bottom nav */
+  nav.bottom {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; background: #fff; border-top: 1px solid var(--line);
+    display: flex; padding-bottom: env(safe-area-inset-bottom);
+  }
+  nav.bottom button {
+    flex: 1; background: none; border: none; padding: 8px 0 10px; color: var(--muted); font-size: .7rem;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+  }
+  nav.bottom button .ic { font-size: 1.3rem; }
+  nav.bottom button.on { color: var(--green); font-weight: bold; }
+
+  /* Sheet */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 80; display: none; }
+  .overlay.show { display: block; }
+  .sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 90; background: #fff; border-radius: 18px 18px 0 0;
+    max-height: 88vh; overflow-y: auto; padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+    transform: translateY(100%); transition: transform .25s ease; max-width: 640px; margin: 0 auto;
+  }
+  .sheet { visibility: hidden; }
+  .sheet.show { transform: translateY(0); visibility: visible; }
+  .sheet h2 { font-size: 1rem; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+  .meal-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px; }
+  .meal-tabs button { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 8px 0; font-size: .8rem; }
+  .meal-tabs button.on { background: var(--green); color: #fff; border-color: var(--green); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; max-height: 150px; overflow-y: auto; margin: 8px 0 12px; }
+  .chip {
+    border: 1px solid var(--line); background: var(--bg); border-radius: 16px; padding: 5px 10px; font-size: .78rem; color: var(--text);
+  }
+  .chip.mine { background: #fff8e8; border-color: #f2dfb0; }
+  .chip small { color: var(--muted); }
+  .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .grid4 .input { width: 100%; }
+  .mini-label { font-size: .7rem; color: var(--muted); margin-bottom: 2px; display: block; }
+
+  .empty { text-align: center; color: var(--muted); font-size: .85rem; padding: 10px 0; }
+  .toast {
+    position: fixed; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px);
+    background: #263330; color: #fff; padding: 10px 18px; border-radius: 20px; font-size: .85rem; opacity: 0; pointer-events: none;
+    transition: all .25s; z-index: 100; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .rule-edit { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .rule-edit .input { flex: 1; }
+  .hist-day { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-top: 1px solid var(--line); font-size: .85rem; }
+  .hist-day:first-child { border-top: none; }
+  .hist-day .meta { color: var(--muted); font-size: .78rem; }
+  .pill { display: inline-block; border-radius: 10px; padding: 1px 8px; font-size: .72rem; font-weight: bold; }
+  .pill.ok { background: var(--green-soft); color: var(--green-dark); }
+  .pill.over { background: #fdeaea; color: var(--danger); }
+  .sub-title { font-size: .82rem; font-weight: bold; margin: 16px 0 6px; }
+  .report { white-space: pre-wrap; font-family: inherit; font-size: .85rem; line-height: 1.7; background: var(--bg); border-radius: 10px; padding: 12px; }
+  .todo { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); }
+  .todo:first-child { border-top: none; }
+  .todo .body { flex: 1; min-width: 0; }
+  .todo .title { font-size: .9rem; word-break: break-word; }
+  .todo.done .title { text-decoration: line-through; color: var(--muted); }
+  .todo .meta { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+  .todo .meta.late { color: var(--danger); }
+  .group-label { font-size: .75rem; color: var(--muted); font-weight: bold; margin: 10px 0 2px; }
+  .group-label:first-child { margin-top: 0; }
+  .rem { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); font-size: .85rem; flex-wrap: wrap; }
+  .rem:first-child { border-top: none; }
+  .rem .t { flex: 1; min-width: 120px; }
+  .rem input[type=time] { width: 110px; }
+  .fast-time { font-size: 1.8rem; font-weight: bold; font-variant-numeric: tabular-nums; text-align: center; }
+  .seg { flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🥗 マイダイエット</h1>
+  <a href="index.html">📔 日記へ</a>
+</header>
+
+<div class="container">
+
+  <!-- ===== 今日 ===== -->
+  <section class="page active" id="page-today">
+    <div class="date-nav">
+      <button onclick="shiftDay(-1)" aria-label="前の日">‹</button>
+      <div class="date-label" id="date-label"></div>
+      <button onclick="shiftDay(1)" aria-label="次の日">›</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔥 カロリー</div>
+      <div class="kcal-wrap">
+        <div class="ring">
+          <svg width="120" height="120" viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="50" fill="none" stroke="#e2ebe7" stroke-width="12"/>
+            <circle id="ring-fg" cx="60" cy="60" r="50" fill="none" stroke="#2f8f6a" stroke-width="12"
+                    stroke-linecap="round" stroke-dasharray="314.16" stroke-dashoffset="314.16"/>
+          </svg>
+          <div class="ring-center">
+            <div class="small" id="ring-caption">残り</div>
+            <div class="big" id="ring-num">0</div>
+            <div class="small">kcal</div>
+          </div>
+        </div>
+        <div class="kcal-stats">
+          <div><span>目標</span><b id="k-goal">0</b></div>
+          <div><span>運動</span><b id="k-ex">0</b></div>
+          <div><span>食べた</span><b id="k-eaten">0</b></div>
+          <div><span>残り</span><b id="k-left">0</b></div>
+        </div>
+      </div>
+      <div class="pfc" id="pfc"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🍽 食事
+        <span><button class="add-btn" onclick="copyYesterday()">昨日をコピー</button> <button class="add-btn" onclick="openSheet()">＋ 追加</button></span></div>
+      <div id="meals"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">⚖️ 体重</div>
+      <div class="row">
+        <input class="input" type="number" inputmode="decimal" step="0.1" id="weight-input" placeholder="65.0" style="width:110px">
+        <span class="unit">kg</span>
+        <button class="btn" onclick="saveWeight()">記録</button>
+        <span class="muted" id="weight-diff"></span>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <span class="unit" style="width:64px">ウエスト</span>
+        <input class="input" type="number" inputmode="decimal" step="0.1" id="waist-input" placeholder="任意" style="width:90px"><span class="unit">cm</span>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <span class="unit" style="width:64px">体脂肪率</span>
+        <input class="input" type="number" inputmode="decimal" step="0.1" id="fat-input" placeholder="任意" style="width:90px"><span class="unit">%</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🏃 運動 <span class="muted" id="ex-label"></span></div>
+      <div id="ex-list"></div>
+      <div class="row" style="margin-top:8px">
+        <select class="input" id="ex-type" style="flex:1"></select>
+        <input class="input" type="number" inputmode="numeric" id="ex-min" placeholder="30" style="width:70px"><span class="unit">分</span>
+        <button class="btn secondary" onclick="addExercise()">追加</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">⏱ 断食タイマー <span class="muted" id="fast-goal-label"></span></div>
+      <div id="fast-box"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">☑️ 今日のToDo <button class="add-btn" onclick="showPage('todo')">すべて見る</button></div>
+      <div id="today-todos"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">💧 水分 <span class="muted" id="water-label"></span></div>
+      <div class="water" id="water"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">✅ 食事ルール <span class="streak" id="streak"></span></div>
+      <div id="rules"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📝 ひとことメモ</div>
+      <textarea class="input" id="memo" placeholder="空腹感、体調、がんばったことなど" onchange="saveMemo()"></textarea>
+    </div>
+  </section>
+
+  <!-- ===== ToDo ===== -->
+  <section class="page" id="page-todo">
+    <div class="card">
+      <div class="card-title">☑️ ToDoリスト <button class="add-btn" onclick="openTodoSheet()">＋ 追加</button></div>
+      <div class="seg" id="todo-filter" style="margin-bottom:10px">
+        <button data-r="all" class="on">すべて</button><button data-r="meal">🍳 食事</button><button data-r="exercise">🏃 運動</button><button data-r="shopping">🛒 買い物</button><button data-r="other">📌 その他</button>
+      </div>
+      <div id="todo-list"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">✔️ 完了したもの <button class="add-btn" onclick="clearDoneTodos()">片付ける</button></div>
+      <div id="todo-done"></div>
+    </div>
+  </section>
+
+  <!-- ===== 記録・グラフ ===== -->
+  <section class="page" id="page-progress">
+    <div class="card">
+      <div class="card-title">🎯 目標までの進み具合</div>
+      <div class="stat-grid">
+        <div class="stat"><div class="v" id="s-current">-</div><div class="l">現在 (kg)</div></div>
+        <div class="stat"><div class="v" id="s-change">-</div><div class="l">開始から</div></div>
+        <div class="stat"><div class="v" id="s-left">-</div><div class="l">目標まで</div></div>
+      </div>
+      <div class="progress"><span id="s-bar" style="width:0%"></span></div>
+      <div class="muted" id="s-note"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📉 体重の推移
+        <div class="seg" id="range-seg">
+          <button data-r="30" class="on">30日</button><button data-r="90">90日</button><button data-r="365">1年</button>
+        </div>
+      </div>
+      <div class="chart-box"><canvas id="chart-weight"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔥 カロリー（直近14日）</div>
+      <div class="chart-box"><canvas id="chart-kcal"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📮 週間レポート（直近7日）</div>
+      <pre class="report" id="report"></pre>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" onclick="sendReport('gmail')">✉️ Gmailで送る</button>
+        <button class="btn ghost" onclick="sendReport('mail')">メールアプリ</button>
+        <button class="btn ghost" onclick="sendReport('share')">共有・コピー</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📅 最近の記録</div>
+      <div id="history"></div>
+    </div>
+  </section>
+
+  <!-- ===== 設定 ===== -->
+  <section class="page" id="page-settings">
+    <div class="card">
+      <div class="card-title">👤 からだのデータ</div>
+      <div class="two">
+        <div class="field"><label>性別</label>
+          <select class="input" id="set-sex"><option value="female">女性</option><option value="male">男性</option></select>
+        </div>
+        <div class="field"><label>年齢</label><input class="input" type="number" inputmode="numeric" id="set-age"></div>
+      </div>
+      <div class="two">
+        <div class="field"><label>身長 (cm)</label><input class="input" type="number" inputmode="decimal" id="set-height"></div>
+        <div class="field"><label>開始時の体重 (kg)</label><input class="input" type="number" inputmode="decimal" step="0.1" id="set-start"></div>
+      </div>
+      <div class="field"><label>ふだんの活動量</label>
+        <select class="input" id="set-activity">
+          <option value="1.2">ほぼ座っている（デスクワーク中心）</option>
+          <option value="1.375">少し動く（週1〜3回の軽い運動）</option>
+          <option value="1.55">よく動く（週3〜5回の運動）</option>
+          <option value="1.725">かなり動く（ほぼ毎日しっかり運動）</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🎯 目標</div>
+      <div class="two">
+        <div class="field"><label>目標体重 (kg)</label><input class="input" type="number" inputmode="decimal" step="0.1" id="set-target"></div>
+        <div class="field"><label>目標日</label><input class="input" type="date" id="set-date"></div>
+      </div>
+      <div class="field"><label>1日の摂取カロリー目標（空欄なら自動計算）</label>
+        <input class="input" type="number" inputmode="numeric" id="set-kcal" placeholder="自動">
+      </div>
+      <label class="muted" style="display:flex;align-items:center;gap:6px;margin-bottom:12px">
+        <input type="checkbox" id="set-addex"> 運動で消費した分を、食べてよいカロリーに足す
+      </label>
+      <div class="two">
+        <div class="field"><label>断食の目標時間</label>
+          <select class="input" id="set-fast"><option value="12">12時間</option><option value="14">14時間</option><option value="16">16時間</option><option value="18">18時間</option></select>
+        </div>
+        <div class="field"><label>水分目標（200ml×杯）</label>
+          <input class="input" type="number" inputmode="numeric" id="set-water">
+        </div>
+      </div>
+      <div class="calc-box" id="calc-box"></div>
+      <button class="btn block" style="margin-top:12px" onclick="saveSettings()">設定を保存</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">✅ 食事ルール（毎日チェック）</div>
+      <div id="rule-editor"></div>
+      <div class="rule-edit">
+        <input class="input" id="new-rule" placeholder="例：揚げ物は週1回まで">
+        <button class="btn secondary" onclick="addRule()">追加</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">⭐ マイ食品</div>
+      <div id="myfood-list"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔗 カレンダー・メール連携</div>
+      <div class="field"><label>レポートの送り先メールアドレス（自分のGmailなど）</label>
+        <input class="input" type="email" id="set-email" placeholder="example@gmail.com" onchange="saveEmail()">
+      </div>
+      <div class="sub-title">⏰ 毎日のリマインダーをカレンダーに登録</div>
+      <p class="muted" style="margin-bottom:8px">時刻を決めて「登録」を押すと、毎日（または毎週）くり返す予定として通知が届くようになります。</p>
+      <div id="reminder-list"></div>
+      <div class="sub-title">🎯 目標日</div>
+      <button class="btn ghost" onclick="goalToCalendar()">目標日をカレンダーに登録</button>
+      <div class="sub-title">🌳 TimeTreeと使うには</div>
+      <p class="muted" style="line-height:1.7">TimeTreeは外部アプリから直接書き込む仕組み（API）の提供を終了しています。次のどちらかの方法で使えます。<br>
+        ① 予定を<b>Googleカレンダー</b>に登録し、TimeTreeアプリの設定で外部カレンダー（Googleカレンダーやスマホのカレンダー）を表示するようにする<br>
+        ② 予定の「📅」から<b>TimeTreeへ共有</b>を選び、共有メニューでTimeTreeを選ぶ（または文章をコピーして貼り付け）</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">💾 データ</div>
+      <p class="muted" style="margin-bottom:10px">データはこの端末のブラウザ内にだけ保存されます。機種変更の前などはバックアップしてください。</p>
+      <div class="row">
+        <button class="btn ghost" onclick="exportData()">バックアップを保存</button>
+        <button class="btn ghost" onclick="document.getElementById('import-file').click()">バックアップから復元</button>
+        <input type="file" id="import-file" accept="application/json" style="display:none" onchange="importData(event)">
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn ghost" onclick="importDiaryWeights()">日記アプリの体重を取り込む</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn danger" onclick="resetAll()">すべてのデータを削除</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<nav class="bottom">
+  <button class="on" data-page="today"><span class="ic">🍽</span>今日</button>
+  <button data-page="todo"><span class="ic">☑️</span>ToDo</button>
+  <button data-page="progress"><span class="ic">📈</span>記録</button>
+  <button data-page="settings"><span class="ic">⚙️</span>設定</button>
+</nav>
+
+<!-- 食事追加シート -->
+<div class="overlay" id="overlay" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet">
+  <h2><span id="sheet-title">食事を追加</span><button class="icon-btn" onclick="closeSheet()" style="font-size:1.3rem">✕</button></h2>
+  <div class="meal-tabs" id="meal-tabs"></div>
+  <input class="input" id="food-search" placeholder="🔍 食品をさがす（例：ごはん）" style="width:100%" oninput="renderChips()">
+  <div class="chips" id="chips"></div>
+  <div class="field"><label>食品名</label><input class="input" id="f-name" placeholder="例：鶏むね肉のソテー"></div>
+  <div class="grid4">
+    <div><span class="mini-label">カロリー kcal</span><input class="input" type="number" inputmode="decimal" id="f-kcal"></div>
+    <div><span class="mini-label">たんぱく質 g</span><input class="input" type="number" inputmode="decimal" id="f-p"></div>
+    <div><span class="mini-label">脂質 g</span><input class="input" type="number" inputmode="decimal" id="f-f"></div>
+    <div><span class="mini-label">炭水化物 g</span><input class="input" type="number" inputmode="decimal" id="f-c"></div>
+  </div>
+  <div class="row" style="margin:12px 0">
+    <span class="unit">量</span>
+    <div class="seg" id="qty-seg">
+      <button data-q="0.5">×0.5</button><button data-q="1" class="on">×1</button><button data-q="1.5">×1.5</button><button data-q="2">×2</button>
+    </div>
+    <label class="muted" style="display:flex;align-items:center;gap:4px;margin-left:auto">
+      <input type="checkbox" id="f-save"> マイ食品に登録
+    </label>
+  </div>
+  <button class="btn block" id="sheet-submit" onclick="submitFood()">追加する</button>
+</div>
+
+<!-- ToDo追加シート -->
+<div class="sheet" id="todo-sheet">
+  <h2><span id="todo-sheet-title">ToDoを追加</span><button class="icon-btn" onclick="closeSheet()" style="font-size:1.3rem">✕</button></h2>
+  <div class="chips" id="todo-suggest" style="max-height:none"></div>
+  <div class="field"><label>やること</label><input class="input" id="t-title" placeholder="例：30分ウォーキング"></div>
+  <div class="meal-tabs" id="t-cat"></div>
+  <div class="two">
+    <div class="field"><label>日付（任意）</label><input class="input" type="date" id="t-date"></div>
+    <div class="field"><label>時刻（任意）</label><input class="input" type="time" id="t-time"></div>
+  </div>
+  <div class="field"><label>くり返し</label>
+    <select class="input" id="t-repeat"><option value="none">なし</option><option value="daily">毎日</option><option value="weekly">毎週（同じ曜日）</option></select>
+  </div>
+  <label class="muted" style="display:flex;align-items:center;gap:6px;margin-bottom:12px">
+    <input type="checkbox" id="t-cal"> 保存したあとカレンダーにも登録する
+  </label>
+  <button class="btn block" id="todo-submit" onclick="submitTodo()">追加する</button>
+</div>
+
+<!-- カレンダー登録シート -->
+<div class="sheet" id="cal-sheet">
+  <h2><span>📅 カレンダーに登録</span><button class="icon-btn" onclick="closeSheet()" style="font-size:1.3rem">✕</button></h2>
+  <div class="calc-box" id="cal-preview" style="margin-bottom:12px"></div>
+  <button class="btn block" onclick="calAction('google')" style="margin-bottom:8px">Googleカレンダーに追加</button>
+  <button class="btn block ghost" onclick="calAction('ics')" style="margin-bottom:8px">iPhone・その他のカレンダー（.ics）</button>
+  <button class="btn block ghost" onclick="calAction('timetree')">TimeTreeへ共有（文章をコピー）</button>
+  <p class="muted" style="margin-top:10px">Googleカレンダーに入れた予定は、TimeTreeの設定で外部カレンダーを表示するようにすると、TimeTreeでも見られます。</p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ================= データ =================
+const KEY = 'diet_v1';
+const MEALS = [
+  { id: 'breakfast', label: '朝食', icon: '🌅' },
+  { id: 'lunch', label: '昼食', icon: '☀️' },
+  { id: 'dinner', label: '夕食', icon: '🌙' },
+  { id: 'snack', label: '間食', icon: '🍪' },
+];
+
+// よく食べるものの目安（1食分のおおよその値）
+const PRESETS = [
+  ['ごはん 茶碗1杯(150g)', 234, 3.8, 0.5, 55.7],
+  ['ごはん 小盛り(100g)', 156, 2.5, 0.3, 37.1],
+  ['玄米ごはん(150g)', 228, 4.2, 1.5, 53.4],
+  ['食パン 6枚切1枚', 149, 5.3, 2.5, 26.6],
+  ['おにぎり(鮭)', 180, 5.0, 1.5, 38.0],
+  ['卵 1個', 76, 6.2, 5.2, 0.2],
+  ['ゆで卵 1個', 76, 6.2, 5.2, 0.2],
+  ['納豆 1パック', 90, 7.4, 4.5, 5.4],
+  ['豆腐 1/2丁(150g)', 84, 7.4, 4.5, 2.4],
+  ['味噌汁 1杯', 40, 2.5, 1.2, 4.5],
+  ['鶏むね肉 皮なし100g', 105, 23.3, 1.9, 0],
+  ['サラダチキン 1個', 110, 24.0, 1.5, 0.5],
+  ['鮭の塩焼き 1切れ', 150, 18.0, 8.0, 0.1],
+  ['豚しょうが焼き 1人前', 330, 18.0, 22.0, 10.0],
+  ['唐揚げ 3個', 290, 18.0, 18.0, 12.0],
+  ['野菜サラダ(ドレッシング少々)', 50, 1.2, 3.0, 5.0],
+  ['ブロッコリー 50g', 17, 2.2, 0.3, 2.6],
+  ['バナナ 1本', 86, 1.1, 0.2, 22.5],
+  ['りんご 1/2個', 70, 0.2, 0.2, 19.0],
+  ['ヨーグルト 無糖100g', 62, 3.6, 3.0, 4.9],
+  ['牛乳 200ml', 134, 6.6, 7.6, 9.6],
+  ['豆乳 無調整200ml', 92, 7.2, 4.0, 6.2],
+  ['プロテイン 1杯(水)', 110, 20.0, 1.5, 4.0],
+  ['ラーメン 1杯', 500, 20.0, 15.0, 70.0],
+  ['カレーライス', 750, 18.0, 22.0, 115.0],
+  ['牛丼 並', 650, 20.0, 22.0, 90.0],
+  ['ざるそば', 300, 12.0, 2.0, 58.0],
+  ['パスタ ミートソース', 600, 22.0, 18.0, 82.0],
+  ['コンビニ弁当', 700, 22.0, 25.0, 95.0],
+  ['ポテトチップス 1袋(60g)', 330, 3.0, 21.0, 32.0],
+  ['チョコレート 板1/4', 140, 1.7, 8.5, 14.0],
+  ['ショートケーキ', 330, 5.0, 18.0, 37.0],
+  ['缶コーヒー(加糖)', 70, 1.0, 1.0, 13.0],
+  ['ビール 350ml', 140, 1.1, 0, 10.9],
+];
+
+const DEFAULT_REMINDERS = [
+  { id: 'weigh', title: '朝の体重測定', time: '07:00', repeat: 'daily' },
+  { id: 'water', title: '水を1杯飲む', time: '15:00', repeat: 'daily' },
+  { id: 'stop', title: '夜の食事はここまで', time: '21:00', repeat: 'daily' },
+  { id: 'review', title: '週の振り返り・レポート送信（日曜）', time: '20:00', repeat: 'weekly' },
+];
+
+const DEFAULT_RULES = [
+  '夜9時以降は食べない',
+  '間食は1日1回まで',
+  '甘い飲み物を飲まない',
+  '野菜を先に食べる',
+];
+
+function uid() { return Math.random().toString(36).slice(2, 10); }
+
+function defaultData() {
+  return {
+    settings: {
+      sex: 'female', age: 35, height: 160, startWeight: null, targetWeight: null,
+      targetDate: '', activity: 1.375, kcalOverride: null, waterGoal: 8,
+      addExercise: true, fastHours: 16, email: '',
+      reminders: DEFAULT_REMINDERS.map(r => ({ ...r })),
+      rules: DEFAULT_RULES.map(t => ({ id: uid(), text: t })),
+    },
+    days: {},
+    myFoods: [],
+    todos: [],
+    fasting: { start: null, log: [] },
+  };
+}
+
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem(KEY));
+    if (d && d.settings && d.days) {
+      const base = defaultData();
+      d.settings = Object.assign(base.settings, d.settings);
+      d.myFoods = d.myFoods || [];
+      d.todos = d.todos || [];
+      d.fasting = d.fasting || base.fasting;
+      return d;
+    }
+  } catch (e) {}
+  return defaultData();
+}
+let data = load();
+function persist() {
+  try { localStorage.setItem(KEY, JSON.stringify(data)); }
+  catch (e) { toast('保存できませんでした'); }
+}
+
+function dayData(date, create) {
+  if (!data.days[date] && create) data.days[date] = { meals: [], weight: null, water: 0, checks: {}, memo: '', exercise: [] };
+  return data.days[date] || { meals: [], weight: null, water: 0, checks: {}, memo: '', exercise: [] };
+}
+
+// ================= 日付 =================
+function ymd(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function todayStr() { return ymd(new Date()); }
+function parse(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
+function addDays(s, n) { const d = parse(s); d.setDate(d.getDate() + n); return ymd(d); }
+const WD = ['日', '月', '火', '水', '木', '金', '土'];
+function jpDate(s) { const d = parse(s); return `${d.getMonth() + 1}月${d.getDate()}日（${WD[d.getDay()]}）`; }
+
+let curDate = todayStr();
+function shiftDay(n) {
+  const next = addDays(curDate, n);
+  if (next > todayStr()) { toast('未来の日付は記録できません'); return; }
+  curDate = next;
+  renderToday();
+}
+
+// ================= 計算 =================
+function bmr(s, w) {
+  // Mifflin-St Jeor 式
+  const base = 10 * w + 6.25 * s.height - 5 * s.age;
+  return s.sex === 'male' ? base + 5 : base - 161;
+}
+
+function latestWeight(upTo) {
+  const dates = Object.keys(data.days).filter(d => data.days[d].weight && (!upTo || d <= upTo)).sort();
+  return dates.length ? data.days[dates[dates.length - 1]].weight : null;
+}
+
+function plan() {
+  const s = data.settings;
+  const w = latestWeight() || s.startWeight;
+  if (!w || !s.height || !s.age) return { ready: false, goal: s.kcalOverride || 1800 };
+  const b = bmr(s, w);
+  const tdee = b * Number(s.activity);
+  const floor = s.sex === 'male' ? 1500 : 1200;
+  let deficit = 500, capped = false, daysLeft = null;
+  if (s.targetWeight && s.targetWeight < w) {
+    if (s.targetDate) {
+      daysLeft = Math.max(1, Math.round((parse(s.targetDate) - parse(todayStr())) / 86400000));
+      deficit = ((w - s.targetWeight) * 7200) / daysLeft; // 体脂肪1kg ≒ 7200kcal
+    }
+  } else if (s.targetWeight && s.targetWeight >= w) {
+    deficit = 0;
+  }
+  if (deficit > 1000) { deficit = 1000; capped = true; }
+  let goal = Math.round(tdee - deficit);
+  let floored = false;
+  if (goal < floor) { goal = floor; floored = true; }
+  if (s.kcalOverride) goal = s.kcalOverride;
+  return { ready: true, w, bmr: Math.round(b), tdee: Math.round(tdee), deficit: Math.round(tdee - goal), goal, capped, floored, daysLeft };
+}
+
+function pfcGoal(kcal) {
+  // たんぱく質25% / 脂質25% / 炭水化物50%
+  return { p: Math.round(kcal * 0.25 / 4), f: Math.round(kcal * 0.25 / 9), c: Math.round(kcal * 0.5 / 4) };
+}
+
+function totals(meals) {
+  return meals.reduce((t, m) => ({ kcal: t.kcal + m.kcal, p: t.p + m.p, f: t.f + m.f, c: t.c + m.c }), { kcal: 0, p: 0, f: 0, c: 0 });
+}
+
+const r1 = n => Math.round(n * 10) / 10;
+
+// ================= 今日ページ =================
+function renderToday() {
+  const isToday = curDate === todayStr();
+  document.getElementById('date-label').innerHTML = `${isToday ? '今日' : jpDate(curDate)}<small>${isToday ? jpDate(curDate) : '過去の記録'}</small>`;
+
+  const day = dayData(curDate);
+  const pl = plan();
+  const t = totals(day.meals);
+  const exK = exerciseKcal(day);
+  const goal = pl.goal + (data.settings.addExercise ? exK : 0);
+  const left = goal - Math.round(t.kcal);
+
+  // リング
+  const ratio = Math.min(t.kcal / goal, 1);
+  const fg = document.getElementById('ring-fg');
+  fg.setAttribute('stroke-dashoffset', (314.16 * (1 - ratio)).toFixed(1));
+  fg.setAttribute('stroke', left < 0 ? '#d65a5a' : '#2f8f6a');
+  document.getElementById('ring-caption').textContent = left < 0 ? 'オーバー' : '残り';
+  document.getElementById('ring-num').textContent = Math.abs(left);
+  document.getElementById('k-goal').textContent = pl.goal + ' kcal';
+  document.getElementById('k-ex').textContent = (exK ? (data.settings.addExercise ? '+' : '') + exK : 0) + ' kcal';
+  document.getElementById('k-eaten').textContent = Math.round(t.kcal) + ' kcal';
+  const kl = document.getElementById('k-left');
+  kl.textContent = left + ' kcal';
+  kl.style.color = left < 0 ? 'var(--danger)' : '';
+
+  // PFC
+  const g = pfcGoal(goal);
+  const rows = [['たんぱく質', t.p, g.p, 'var(--p)'], ['脂質', t.f, g.f, 'var(--f)'], ['炭水化物', t.c, g.c, 'var(--c)']];
+  document.getElementById('pfc').innerHTML = rows.map(([l, v, gg, col]) => `
+    <div class="pfc-row"><span>${l}</span>
+      <div class="bar"><span style="width:${Math.min(v / gg * 100, 100)}%;background:${v > gg * 1.1 ? 'var(--danger)' : col}"></span></div>
+      <span class="num">${Math.round(v)} / ${gg} g</span></div>`).join('');
+
+  // 食事
+  document.getElementById('meals').innerHTML = MEALS.map(m => {
+    const items = day.meals.filter(x => x.type === m.id);
+    const sum = Math.round(items.reduce((a, b) => a + b.kcal, 0));
+    return `<div class="meal-group">
+      <div class="meal-head"><span>${m.icon} ${m.label} <span class="sum">${sum ? sum + ' kcal' : ''}</span></span>
+        <button class="add-btn" onclick="openSheet('${m.id}')">＋</button></div>
+      ${items.map(x => `<div class="meal-item">
+          <span class="name" onclick="openSheet('${m.id}','${x.id}')">${esc(x.name)}</span>
+          <span class="kc">${Math.round(x.kcal)} kcal</span>
+          <button class="icon-btn" onclick="deleteMeal('${x.id}')" aria-label="削除">✕</button>
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+
+  // 体重
+  document.getElementById('weight-input').value = day.weight || '';
+  const prevW = latestWeight(addDays(curDate, -1));
+  const wd = document.getElementById('weight-diff');
+  if (day.weight && prevW) {
+    const diff = r1(day.weight - prevW);
+    wd.textContent = `前回比 ${diff > 0 ? '+' : ''}${diff} kg`;
+    wd.style.color = diff > 0 ? 'var(--warn)' : 'var(--green)';
+  } else { wd.textContent = ''; }
+
+  // 水分
+  const goalW = Number(data.settings.waterGoal) || 8;
+  const cups = Math.max(goalW, day.water);
+  document.getElementById('water-label').textContent = `${day.water * 200} / ${goalW * 200} ml`;
+  document.getElementById('water').innerHTML = Array.from({ length: cups + 1 }, (_, i) =>
+    i < cups
+      ? `<button class="cup ${i < day.water ? 'full' : ''}" onclick="setWater(${i + 1})">${i < day.water ? '💧' : ''}</button>`
+      : `<button class="cup" onclick="setWater(${day.water + 1})" style="border-style:dashed;color:#6fb3e0">＋</button>`
+  ).join('');
+
+  // ルール
+  const rules = data.settings.rules;
+  document.getElementById('rules').innerHTML = rules.length ? rules.map(r => `
+    <div class="rule"><button class="check ${day.checks[r.id] ? 'on' : ''}" onclick="toggleRule('${r.id}')">${day.checks[r.id] ? '✓' : ''}</button>
+    <span>${esc(r.text)}</span></div>`).join('')
+    : '<div class="empty">設定画面からルールを追加できます</div>';
+  const st = streak();
+  document.getElementById('streak').textContent = st ? `🔥 ${st}日連続達成` : '';
+
+  document.getElementById('memo').value = day.memo || '';
+  document.getElementById('waist-input').value = day.waist || '';
+  document.getElementById('fat-input').value = day.fat || '';
+  renderExercise(day);
+  renderFasting();
+  renderTodayTodos();
+}
+
+function streak() {
+  const rules = data.settings.rules;
+  if (!rules.length) return 0;
+  const allDone = d => { const day = data.days[d]; return day && rules.every(r => day.checks[r.id]); };
+  let d = todayStr(), n = 0;
+  if (!allDone(d)) d = addDays(d, -1); // 今日がまだでも昨日までの連続は数える
+  while (allDone(d)) { n++; d = addDays(d, -1); }
+  return n;
+}
+
+function saveWeight() {
+  const v = parseFloat(document.getElementById('weight-input').value);
+  if (!v || v < 20 || v > 300) { toast('体重を正しく入力してください'); return; } // ウエスト・体脂肪は体重と一緒に保存
+  const day = dayData(curDate, true);
+  const waist = parseFloat(document.getElementById('waist-input').value);
+  const fat = parseFloat(document.getElementById('fat-input').value);
+  day.waist = waist > 0 ? r1(waist) : null;
+  day.fat = fat > 0 && fat < 80 ? r1(fat) : null;
+  day.weight = r1(v);
+  if (!data.settings.startWeight) data.settings.startWeight = day.weight;
+  persist(); renderToday();
+  const tgt = data.settings.targetWeight;
+  if (tgt && day.weight <= tgt && curDate === todayStr()) toast('🎉 目標体重を達成しました！おめでとう！');
+  else toast('体重を記録しました ✓');
+}
+
+function setWater(n) {
+  const day = dayData(curDate, true);
+  day.water = day.water === n ? n - 1 : n;
+  persist(); renderToday();
+}
+
+function toggleRule(id) {
+  const day = dayData(curDate, true);
+  day.checks[id] = !day.checks[id];
+  persist(); renderToday();
+  if (data.settings.rules.every(r => day.checks[r.id])) toast('全部達成！すばらしい 🎉');
+}
+
+function saveMemo() {
+  const day = dayData(curDate, true);
+  day.memo = document.getElementById('memo').value;
+  persist();
+}
+
+function deleteMeal(id) {
+  const day = dayData(curDate, true);
+  day.meals = day.meals.filter(m => m.id !== id);
+  persist(); renderToday();
+}
+
+// ================= 食事追加シート =================
+let sheetType = 'breakfast', editingId = null, qty = 1, baseVals = null;
+
+function guessMeal() {
+  const h = new Date().getHours();
+  if (h < 10) return 'breakfast';
+  if (h < 15) return 'lunch';
+  if (h >= 17 && h < 23) return 'dinner';
+  return 'snack';
+}
+
+function openSheet(type, editId) {
+  sheetType = type || guessMeal();
+  editingId = editId || null;
+  qty = 1; baseVals = null;
+  setSeg('qty-seg', '1');
+  ['f-name', 'f-kcal', 'f-p', 'f-f', 'f-c', 'food-search'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-save').checked = false;
+  if (editingId) {
+    const m = dayData(curDate).meals.find(x => x.id === editingId);
+    if (m) {
+      document.getElementById('f-name').value = m.name;
+      document.getElementById('f-kcal').value = r1(m.kcal);
+      document.getElementById('f-p').value = r1(m.p);
+      document.getElementById('f-f').value = r1(m.f);
+      document.getElementById('f-c').value = r1(m.c);
+    }
+  }
+  document.getElementById('sheet-title').textContent = editingId ? '食事を編集' : '食事を追加';
+  document.getElementById('sheet-submit').textContent = editingId ? '更新する' : '追加する';
+  renderMealTabs(); renderChips();
+  showSheet('sheet');
+}
+function closeSheet() {
+  document.getElementById('overlay').classList.remove('show');
+  document.querySelectorAll('.sheet').forEach(s => s.classList.remove('show'));
+}
+function renderMealTabs() {
+  document.getElementById('meal-tabs').innerHTML = MEALS.map(m =>
+    `<button class="${m.id === sheetType ? 'on' : ''}" onclick="sheetType='${m.id}';renderMealTabs()">${m.icon} ${m.label}</button>`).join('');
+}
+
+function allFoods() {
+  return [
+    ...data.myFoods.map(f => ({ ...f, mine: true })),
+    ...PRESETS.map(([name, kcal, p, f, c]) => ({ name, kcal, p, f, c })),
+  ];
+}
+function renderChips() {
+  const q = document.getElementById('food-search').value.trim();
+  const list = allFoods().filter(f => !q || f.name.includes(q));
+  window._chipList = list;
+  document.getElementById('chips').innerHTML = list.length
+    ? list.map((f, i) => `<button class="chip ${f.mine ? 'mine' : ''}" onclick="pickFood(${i})">${f.mine ? '⭐ ' : ''}${esc(f.name)} <small>${f.kcal}</small></button>`).join('')
+    : '<span class="muted">見つかりません。下に直接入力してください</span>';
+}
+function pickFood(i) {
+  const f = window._chipList[i];
+  document.getElementById('f-name').value = f.name;
+  baseVals = { kcal: f.kcal, p: f.p, f: f.f, c: f.c };
+  applyQty();
+}
+function applyQty() {
+  if (!baseVals) {
+    // 手入力の値を基準にする
+    const v = id => parseFloat(document.getElementById(id).value) || 0;
+    baseVals = { kcal: v('f-kcal') / qtyPrev, p: v('f-p') / qtyPrev, f: v('f-f') / qtyPrev, c: v('f-c') / qtyPrev };
+  }
+  document.getElementById('f-kcal').value = Math.round(baseVals.kcal * qty);
+  document.getElementById('f-p').value = r1(baseVals.p * qty);
+  document.getElementById('f-f').value = r1(baseVals.f * qty);
+  document.getElementById('f-c').value = r1(baseVals.c * qty);
+}
+let qtyPrev = 1;
+document.getElementById('qty-seg').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  qtyPrev = qty;
+  qty = parseFloat(b.dataset.q);
+  setSeg('qty-seg', b.dataset.q);
+  applyQty();
+});
+// 手で数値を変えたら量の基準をリセット
+['f-kcal', 'f-p', 'f-f', 'f-c'].forEach(id => document.getElementById(id).addEventListener('input', () => { baseVals = null; }));
+
+function setSeg(id, val) {
+  document.querySelectorAll(`#${id} button`).forEach(b => b.classList.toggle('on', (b.dataset.q || b.dataset.r) === val));
+}
+
+function submitFood() {
+  const name = document.getElementById('f-name').value.trim();
+  const num = id => Math.max(0, parseFloat(document.getElementById(id).value) || 0);
+  const kcal = num('f-kcal');
+  if (!name) { toast('食品名を入力してください'); return; }
+  if (!kcal) { toast('カロリーを入力してください'); return; }
+  const item = { id: editingId || uid(), type: sheetType, name: qty !== 1 && !editingId ? `${name} ×${qty}` : name, kcal, p: num('f-p'), f: num('f-f'), c: num('f-c') };
+  const day = dayData(curDate, true);
+  if (editingId) day.meals = day.meals.map(m => m.id === editingId ? item : m);
+  else day.meals.push(item);
+  if (document.getElementById('f-save').checked && !data.myFoods.some(f => f.name === name)) {
+    const k = qty || 1;
+    data.myFoods.unshift({ name, kcal: Math.round(kcal / k), p: r1(item.p / k), f: r1(item.f / k), c: r1(item.c / k) });
+  }
+  persist(); closeSheet(); renderToday();
+  toast(editingId ? '更新しました ✓' : '追加しました ✓');
+}
+
+// ================= 記録ページ =================
+let range = 30, chartW = null, chartK = null;
+document.getElementById('range-seg').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  range = Number(b.dataset.r); setSeg('range-seg', b.dataset.r); renderCharts();
+});
+
+function renderProgress() {
+  const s = data.settings;
+  const cur = latestWeight();
+  const start = s.startWeight;
+  const tgt = s.targetWeight;
+  document.getElementById('s-current').textContent = cur ?? '-';
+  const ch = cur && start ? r1(cur - start) : null;
+  document.getElementById('s-change').textContent = ch === null ? '-' : `${ch > 0 ? '+' : ''}${ch}`;
+  document.getElementById('s-left').textContent = cur && tgt ? Math.max(0, r1(cur - tgt)) : '-';
+  let pct = 0;
+  if (cur && start && tgt && start > tgt) pct = Math.max(0, Math.min(100, (start - cur) / (start - tgt) * 100));
+  document.getElementById('s-bar').style.width = pct + '%';
+
+  const notes = [];
+  if (cur && s.height) {
+    const bmi = r1(cur / ((s.height / 100) ** 2));
+    const lab = bmi < 18.5 ? '低体重' : bmi < 25 ? '普通体重' : bmi < 30 ? '肥満(1度)' : '肥満(2度以上)';
+    notes.push(`BMI ${bmi}（${lab}）`);
+  }
+  if (tgt && start) notes.push(`達成率 ${Math.round(pct)}%`);
+  const pace = weeklyPace();
+  if (pace !== null) notes.push(`最近のペース 週${pace > 0 ? '+' : ''}${pace} kg`);
+  if (!tgt) notes.push('設定で目標体重を入れると進み具合が表示されます');
+  document.getElementById('s-note').textContent = notes.join('　/　');
+
+  renderCharts();
+  renderReport();
+  renderHistory();
+}
+
+function weeklyPace() {
+  const pts = Object.keys(data.days).filter(d => data.days[d].weight && d >= addDays(todayStr(), -21)).sort();
+  if (pts.length < 2) return null;
+  const a = pts[0], b = pts[pts.length - 1];
+  const days = (parse(b) - parse(a)) / 86400000;
+  if (days < 5) return null;
+  return r1((data.days[b].weight - data.days[a].weight) / days * 7);
+}
+
+function renderCharts() {
+  if (typeof Chart === 'undefined') return; // オフライン時はグラフだけ省略
+  const from = addDays(todayStr(), -(range - 1));
+  const wDates = Object.keys(data.days).filter(d => d >= from && data.days[d].weight).sort();
+  const tgt = data.settings.targetWeight;
+
+  if (chartW) chartW.destroy();
+  chartW = new Chart(document.getElementById('chart-weight'), {
+    type: 'line',
+    data: {
+      labels: wDates.map(d => { const x = parse(d); return `${x.getMonth() + 1}/${x.getDate()}`; }),
+      datasets: [
+        { label: '体重', data: wDates.map(d => data.days[d].weight), borderColor: '#2f8f6a', backgroundColor: 'rgba(47,143,106,.12)',
+          fill: true, tension: .3, pointRadius: wDates.length > 40 ? 0 : 3 },
+        ...(tgt ? [{ label: '目標', data: wDates.map(() => tgt), borderColor: '#e0803b', borderDash: [6, 4], pointRadius: 0, fill: false }] : []),
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: !!tgt, labels: { boxWidth: 12, font: { size: 11 } } } },
+      scales: { y: { grid: { color: '#eef3f1' } }, x: { grid: { display: false }, ticks: { maxTicksLimit: 7 } } },
+    },
+  });
+
+  const kDates = Array.from({ length: 14 }, (_, i) => addDays(todayStr(), i - 13));
+  const goal = plan().goal;
+  const vals = kDates.map(d => Math.round(totals(dayData(d).meals).kcal));
+  if (chartK) chartK.destroy();
+  chartK = new Chart(document.getElementById('chart-kcal'), {
+    data: {
+      labels: kDates.map(d => { const x = parse(d); return `${x.getMonth() + 1}/${x.getDate()}`; }),
+      datasets: [
+        { type: 'bar', label: '摂取', data: vals, backgroundColor: vals.map((v, i) => v > goal + (data.settings.addExercise ? exerciseKcal(dayData(kDates[i])) : 0) ? '#e8a0a0' : '#8fd0b2'), borderRadius: 4 },
+        { type: 'line', label: '目標', data: kDates.map(() => goal), borderColor: '#e0803b', borderDash: [6, 4], pointRadius: 0 },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { boxWidth: 12, font: { size: 11 } } } },
+      scales: { y: { beginAtZero: true, grid: { color: '#eef3f1' } }, x: { grid: { display: false }, ticks: { maxTicksLimit: 7 } } },
+    },
+  });
+}
+
+function renderHistory() {
+  const goal = plan().goal;
+  const dates = Object.keys(data.days).sort().reverse().slice(0, 30);
+  const el = document.getElementById('history');
+  if (!dates.length) { el.innerHTML = '<div class="empty">まだ記録がありません</div>'; return; }
+  el.innerHTML = dates.map(d => {
+    const day = data.days[d];
+    const k = Math.round(totals(day.meals).kcal);
+    const rules = data.settings.rules;
+    const done = rules.filter(r => day.checks[r.id]).length;
+    return `<div class="hist-day" onclick="goDay('${d}')">
+      <div><div>${jpDate(d)}</div>
+        <div class="meta">${day.weight ? day.weight + ' kg　' : ''}${(day.exercise || []).length ? '🏃' + exerciseKcal(day) + 'kcal　' : ''}ルール ${done}/${rules.length}　💧${day.water || 0}杯</div></div>
+      <div>${k ? `<span class="pill ${k > goal + (data.settings.addExercise ? exerciseKcal(day) : 0) ? 'over' : 'ok'}">${k} kcal</span>` : '<span class="muted">食事未記録</span>'}</div>
+    </div>`;
+  }).join('');
+}
+
+function goDay(d) { curDate = d; showPage('today'); }
+
+// ================= 設定ページ =================
+function renderSettings() {
+  const s = data.settings;
+  document.getElementById('set-sex').value = s.sex;
+  document.getElementById('set-age').value = s.age || '';
+  document.getElementById('set-height').value = s.height || '';
+  document.getElementById('set-start').value = s.startWeight || '';
+  document.getElementById('set-activity').value = String(s.activity);
+  document.getElementById('set-target').value = s.targetWeight || '';
+  document.getElementById('set-date').value = s.targetDate || '';
+  document.getElementById('set-kcal').value = s.kcalOverride || '';
+  document.getElementById('set-water').value = s.waterGoal || 8;
+  document.getElementById('set-addex').checked = !!s.addExercise;
+  document.getElementById('set-fast').value = String(s.fastHours || 16);
+  document.getElementById('set-email').value = s.email || '';
+  renderCalc(); renderRuleEditor(); renderMyFoods(); renderReminders();
+}
+
+function renderCalc() {
+  const p = plan();
+  const el = document.getElementById('calc-box');
+  if (!p.ready) { el.innerHTML = '年齢・身長・体重を入れると、1日の目標カロリーを計算します。'; return; }
+  const g = pfcGoal(p.goal);
+  let html = `基礎代謝 <b>${p.bmr}</b> kcal ／ 1日の消費 <b>${p.tdee}</b> kcal<br>
+    目標摂取 <b style="font-size:1.1rem">${p.goal}</b> kcal（1日 約${Math.max(0, p.deficit)} kcal のマイナス）<br>
+    PFC目安：たんぱく質 ${g.p}g・脂質 ${g.f}g・炭水化物 ${g.c}g`;
+  if (p.deficit > 0) html += `<br>このペースだと 約 <b>${r1(p.deficit * 7 / 7200)}</b> kg／週 減る計算です`;
+  el.innerHTML = html;
+  if (p.capped) el.innerHTML += `<div class="warn">⚠ 目標日までの期間が短いため、無理のない範囲（1日1000kcalマイナスまで）に抑えています。</div>`;
+  if (p.floored) el.innerHTML += `<div class="warn">⚠ 食べなさすぎを防ぐため、最低 ${data.settings.sex === 'male' ? 1500 : 1200} kcal にしています。</div>`;
+}
+
+function saveSettings() {
+  const s = data.settings;
+  const num = id => { const v = parseFloat(document.getElementById(id).value); return isNaN(v) ? null : v; };
+  s.sex = document.getElementById('set-sex').value;
+  s.age = num('set-age');
+  s.height = num('set-height');
+  s.startWeight = num('set-start');
+  s.activity = parseFloat(document.getElementById('set-activity').value);
+  s.targetWeight = num('set-target');
+  s.targetDate = document.getElementById('set-date').value;
+  s.kcalOverride = num('set-kcal');
+  s.waterGoal = Math.max(1, Math.min(20, num('set-water') || 8));
+  s.addExercise = document.getElementById('set-addex').checked;
+  s.fastHours = Number(document.getElementById('set-fast').value);
+  persist(); renderCalc(); toast('設定を保存しました ✓');
+}
+
+function renderRuleEditor() {
+  document.getElementById('rule-editor').innerHTML = data.settings.rules.map(r => `
+    <div class="rule-edit"><input class="input" value="${esc(r.text)}" onchange="editRule('${r.id}', this.value)">
+    <button class="icon-btn" onclick="removeRule('${r.id}')">🗑</button></div>`).join('');
+}
+function addRule() {
+  const el = document.getElementById('new-rule');
+  const t = el.value.trim(); if (!t) return;
+  data.settings.rules.push({ id: uid(), text: t });
+  el.value = ''; persist(); renderRuleEditor(); toast('ルールを追加しました');
+}
+function editRule(id, t) {
+  const r = data.settings.rules.find(x => x.id === id);
+  if (r && t.trim()) { r.text = t.trim(); persist(); }
+}
+function removeRule(id) {
+  if (!confirm('このルールを削除しますか？')) return;
+  data.settings.rules = data.settings.rules.filter(r => r.id !== id);
+  persist(); renderRuleEditor();
+}
+
+function renderMyFoods() {
+  const el = document.getElementById('myfood-list');
+  el.innerHTML = data.myFoods.length ? data.myFoods.map((f, i) => `
+    <div class="meal-item"><span class="name">⭐ ${esc(f.name)}</span><span class="kc">${f.kcal} kcal</span>
+    <button class="icon-btn" onclick="removeMyFood(${i})">🗑</button></div>`).join('')
+    : '<div class="empty">食事追加時に「マイ食品に登録」で保存できます</div>';
+}
+function removeMyFood(i) { data.myFoods.splice(i, 1); persist(); renderMyFoods(); }
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `diet-backup-${todayStr()}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function importData(ev) {
+  const file = ev.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const d = JSON.parse(reader.result);
+      if (!d.settings || !d.days) throw new Error();
+      if (!confirm('今のデータを上書きして復元しますか？')) return;
+      localStorage.setItem(KEY, JSON.stringify(d));
+      data = load(); renderSettings(); toast('復元しました ✓');
+    } catch (e) { toast('ファイルを読み込めませんでした'); }
+  };
+  reader.readAsText(file);
+  ev.target.value = '';
+}
+function importDiaryWeights() {
+  let entries = [];
+  try { entries = JSON.parse(localStorage.getItem('diary_v2') || '[]'); } catch (e) {}
+  let n = 0;
+  entries.forEach(e => {
+    if (e.weight && e.date) {
+      const day = dayData(e.date, true);
+      if (!day.weight) { day.weight = e.weight; n++; }
+    }
+  });
+  if (n && !data.settings.startWeight) {
+    const first = Object.keys(data.days).filter(d => data.days[d].weight).sort()[0];
+    data.settings.startWeight = data.days[first].weight;
+  }
+  persist(); renderSettings();
+  toast(n ? `${n}日分の体重を取り込みました` : '取り込める体重がありませんでした');
+}
+function resetAll() {
+  if (!confirm('すべての記録と設定を削除します。よろしいですか？')) return;
+  if (!confirm('本当に削除しますか？元に戻せません。')) return;
+  data = defaultData(); persist(); renderSettings(); toast('削除しました');
+}
+
+// ================= 運動 =================
+// METs（運動の強さ）の目安
+const EXERCISES = [
+  ['ウォーキング（ふつう）', 3.5], ['早歩き', 4.3], ['ジョギング', 7.0], ['ランニング', 9.0],
+  ['サイクリング', 6.8], ['筋トレ', 5.0], ['ヨガ', 2.5], ['ストレッチ', 2.3], ['水泳', 6.0],
+  ['ダンス・エアロビクス', 6.5], ['階段のぼり', 4.0], ['掃除・家事', 3.3], ['なわとび', 10.0],
+];
+
+function exerciseKcal(day) {
+  return Math.round((day.exercise || []).reduce((a, b) => a + b.kcal, 0));
+}
+
+function renderExercise(day) {
+  const sel = document.getElementById('ex-type');
+  if (!sel.options.length) sel.innerHTML = EXERCISES.map((e, i) => `<option value="${i}">${e[0]}</option>`).join('');
+  const list = day.exercise || [];
+  document.getElementById('ex-list').innerHTML = list.map(x => `
+    <div class="meal-item"><span class="name">${esc(x.name)}（${x.min}分）</span><span class="kc">-${Math.round(x.kcal)} kcal</span>
+    <button class="icon-btn" onclick="deleteExercise('${x.id}')" aria-label="削除">✕</button></div>`).join('')
+    || '<div class="empty" style="padding:4px 0">まだ記録がありません</div>';
+  const k = exerciseKcal(day);
+  document.getElementById('ex-label').textContent = k ? `合計 ${k} kcal 消費` : '';
+}
+
+function addExercise() {
+  const [name, mets] = EXERCISES[Number(document.getElementById('ex-type').value)];
+  const min = parseFloat(document.getElementById('ex-min').value) || 30;
+  const w = latestWeight(curDate) || data.settings.startWeight || 60;
+  // 安静時の分を引いた「運動で増えた分」だけを数える
+  const kcal = Math.round((mets - 1) * w * (min / 60) * 1.05);
+  const day = dayData(curDate, true);
+  day.exercise = day.exercise || [];
+  day.exercise.push({ id: uid(), name, min, kcal });
+  document.getElementById('ex-min').value = '';
+  persist(); renderToday(); toast(`${name} ${min}分（約${kcal}kcal）を記録しました`);
+}
+
+function deleteExercise(id) {
+  const day = dayData(curDate, true);
+  day.exercise = (day.exercise || []).filter(x => x.id !== id);
+  persist(); renderToday();
+}
+
+function copyYesterday() {
+  const prev = dayData(addDays(curDate, -1));
+  if (!prev.meals.length) { toast('前の日の食事記録がありません'); return; }
+  if (!confirm(`前の日の食事（${prev.meals.length}品）をこの日にコピーしますか？`)) return;
+  const day = dayData(curDate, true);
+  prev.meals.forEach(m => day.meals.push({ ...m, id: uid() }));
+  persist(); renderToday(); toast('コピーしました ✓');
+}
+
+// ================= 断食タイマー =================
+let fastTimer = null;
+function fmtDur(ms) {
+  const m = Math.max(0, Math.floor(ms / 60000));
+  return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
+}
+function renderFasting() {
+  const f = data.fasting;
+  const goalH = Number(data.settings.fastHours) || 16;
+  document.getElementById('fast-goal-label').textContent = `目標 ${goalH}時間`;
+  const box = document.getElementById('fast-box');
+  if (f.start) {
+    const el = Date.now() - f.start;
+    const pct = Math.min(100, el / (goalH * 3600000) * 100);
+    const endAt = new Date(f.start + goalH * 3600000);
+    box.innerHTML = `<div class="fast-time">${fmtDur(el)}</div>
+      <div class="progress"><span style="width:${pct}%"></span></div>
+      <div class="muted" style="text-align:center;margin-bottom:10px">${pct >= 100 ? '🎉 目標達成！いつでも食事OK' : `${endAt.getHours()}:${String(endAt.getMinutes()).padStart(2, '0')} に目標達成`}</div>
+      <div class="row"><button class="btn block" onclick="stopFast()">断食を終える（食事をとる）</button></div>
+      <div class="row" style="margin-top:8px"><button class="btn ghost block" onclick="fastToCalendar()">📅 終わる時刻をカレンダーに登録</button></div>`;
+  } else {
+    const last = f.log[f.log.length - 1];
+    box.innerHTML = `<p class="muted" style="margin-bottom:10px">最後の食事が終わったらスタート。次に食べるまでの時間をはかります。${last ? `<br>前回：${fmtDur(last.end - last.start)}${(last.end - last.start) >= goalH * 3600000 ? ' ✅' : ''}` : ''}</p>
+      <button class="btn block secondary" onclick="startFast()">断食スタート</button>`;
+  }
+  clearInterval(fastTimer);
+  if (f.start) fastTimer = setInterval(() => {
+    if (document.getElementById('page-today').classList.contains('active')) renderFasting();
+  }, 30000);
+}
+function startFast() { data.fasting.start = Date.now(); persist(); renderFasting(); toast('断食スタート！'); }
+function stopFast() {
+  const f = data.fasting;
+  if (!f.start) return;
+  const goalH = Number(data.settings.fastHours) || 16;
+  const entry = { start: f.start, end: Date.now(), goalH };
+  f.log.push(entry); f.log = f.log.slice(-60); f.start = null;
+  persist(); renderFasting();
+  toast(entry.end - entry.start >= goalH * 3600000 ? `🎉 ${fmtDur(entry.end - entry.start)} 達成！` : `記録しました（${fmtDur(entry.end - entry.start)}）`);
+}
+function fastToCalendar() {
+  const goalH = Number(data.settings.fastHours) || 16;
+  const end = new Date(data.fasting.start + goalH * 3600000);
+  openCalSheet({ title: '⏱ 断食終了（食事OK）', date: ymd(end), time: `${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`, durMin: 15, repeat: 'none', details: `${goalH}時間の断食が終わる時刻です。` });
+}
+
+// ================= ToDo =================
+const TODO_CATS = [
+  { id: 'meal', label: '食事', icon: '🍳' }, { id: 'exercise', label: '運動', icon: '🏃' },
+  { id: 'shopping', label: '買い物', icon: '🛒' }, { id: 'other', label: 'その他', icon: '📌' },
+];
+const TODO_SUGGEST = [
+  ['朝に体重を測る', 'other', 'daily'], ['30分ウォーキング', 'exercise', 'none'], ['筋トレ15分', 'exercise', 'none'],
+  ['作り置きを作る', 'meal', 'none'], ['お弁当を準備する', 'meal', 'none'], ['野菜・鶏むね肉を買う', 'shopping', 'none'],
+  ['お菓子を買わない', 'shopping', 'none'], ['23時までに寝る', 'other', 'daily'],
+];
+const REPEAT_LABEL = { daily: '🔁 毎日', weekly: '🔁 毎週' };
+let todoFilter = 'all', todoCat = 'other', editingTodo = null;
+
+function isDueOn(t, d) {
+  if (t.repeat === 'daily') return !t.date || d >= t.date;
+  if (t.repeat === 'weekly') return (!t.date || d >= t.date) && parse(d).getDay() === parse(t.date || d).getDay();
+  return t.date === d;
+}
+function isDone(t, d) { return t.repeat && t.repeat !== 'none' ? (t.doneDates || []).includes(d) : !!t.done; }
+function catOf(id) { return TODO_CATS.find(c => c.id === id) || TODO_CATS[3]; }
+
+function todoRow(t, d) {
+  const done = isDone(t, d);
+  const late = !t.repeat || t.repeat === 'none' ? (t.date && t.date < todayStr() && !done) : false;
+  const meta = [catOf(t.cat).icon + ' ' + catOf(t.cat).label];
+  if (t.repeat && t.repeat !== 'none') meta.push(REPEAT_LABEL[t.repeat] + (t.repeat === 'weekly' && t.date ? `（${WD[parse(t.date).getDay()]}曜）` : ''));
+  else if (t.date) meta.push(jpDate(t.date));
+  if (t.time) meta.push(t.time);
+  return `<div class="todo ${done ? 'done' : ''}">
+    <button class="check ${done ? 'on' : ''}" onclick="toggleTodo('${t.id}','${d}')">${done ? '✓' : ''}</button>
+    <div class="body" onclick="openTodoSheet('${t.id}')"><div class="title">${esc(t.title)}</div>
+      <div class="meta ${late ? 'late' : ''}">${late ? '期限切れ・' : ''}${meta.join('　')}</div></div>
+    <button class="icon-btn" onclick="todoToCalendar('${t.id}')" aria-label="カレンダーに登録">📅</button>
+    <button class="icon-btn" onclick="deleteTodo('${t.id}')" aria-label="削除">🗑</button>
+  </div>`;
+}
+
+function renderTodos() {
+  const today = todayStr();
+  const list = data.todos.filter(t => todoFilter === 'all' || t.cat === todoFilter);
+  const once = list.filter(t => !t.repeat || t.repeat === 'none');
+  const rep = list.filter(t => t.repeat && t.repeat !== 'none');
+  const byDate = (a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || ''));
+  const groups = [
+    ['⚠️ 期限切れ', once.filter(t => !t.done && t.date && t.date < today).sort(byDate)],
+    ['📍 今日', [...once.filter(t => !t.done && t.date === today), ...rep.filter(t => isDueOn(t, today))].sort((a, b) => (a.time || '99').localeCompare(b.time || '99'))],
+    ['🗓 これから', once.filter(t => !t.done && t.date > today).sort(byDate)],
+    ['📝 日付なし', once.filter(t => !t.done && !t.date)],
+    ['🔁 くり返し（今日はお休み）', rep.filter(t => !isDueOn(t, today))],
+  ].filter(g => g[1].length);
+  document.getElementById('todo-list').innerHTML = groups.length
+    ? groups.map(([l, items]) => `<div class="group-label">${l}</div>${items.map(t => todoRow(t, today)).join('')}`).join('')
+    : '<div class="empty">やることはありません。「＋ 追加」から登録しましょう</div>';
+  const done = once.filter(t => t.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0)).slice(0, 30);
+  document.getElementById('todo-done').innerHTML = done.length ? done.map(t => todoRow(t, today)).join('') : '<div class="empty">まだありません</div>';
+}
+
+function renderTodayTodos() {
+  const d = curDate, today = todayStr();
+  const items = data.todos.filter(t => isDueOn(t, d) || (d === today && (!t.repeat || t.repeat === 'none') && !t.done && t.date && t.date < today));
+  items.sort((a, b) => (a.time || '99').localeCompare(b.time || '99'));
+  document.getElementById('today-todos').innerHTML = items.length
+    ? items.map(t => todoRow(t, d)).join('')
+    : '<div class="empty" style="padding:4px 0">この日のToDoはありません</div>';
+}
+
+function toggleTodo(id, d) {
+  const t = data.todos.find(x => x.id === id); if (!t) return;
+  if (t.repeat && t.repeat !== 'none') {
+    t.doneDates = t.doneDates || [];
+    t.doneDates = t.doneDates.includes(d) ? t.doneDates.filter(x => x !== d) : [...t.doneDates, d].slice(-400);
+  } else {
+    t.done = !t.done; t.doneAt = t.done ? Date.now() : null;
+  }
+  persist(); refreshCurrent();
+  if (isDone(t, d)) toast('できました！ 👏');
+}
+function deleteTodo(id) {
+  if (!confirm('このToDoを削除しますか？')) return;
+  data.todos = data.todos.filter(t => t.id !== id);
+  persist(); refreshCurrent();
+}
+function clearDoneTodos() {
+  const n = data.todos.filter(t => (!t.repeat || t.repeat === 'none') && t.done).length;
+  if (!n) return;
+  if (!confirm(`完了したToDo ${n}件を削除しますか？`)) return;
+  data.todos = data.todos.filter(t => !((!t.repeat || t.repeat === 'none') && t.done));
+  persist(); renderTodos();
+}
+
+function renderTodoCats() {
+  document.getElementById('t-cat').innerHTML = TODO_CATS.map(c =>
+    `<button class="${c.id === todoCat ? 'on' : ''}" onclick="todoCat='${c.id}';renderTodoCats()">${c.icon} ${c.label}</button>`).join('');
+}
+function openTodoSheet(id) {
+  editingTodo = id ? data.todos.find(t => t.id === id) : null;
+  const t = editingTodo || { title: '', cat: 'other', date: '', time: '', repeat: 'none' };
+  document.getElementById('t-title').value = t.title;
+  document.getElementById('t-date').value = t.date || (editingTodo ? '' : (curDate !== todayStr() ? curDate : ''));
+  document.getElementById('t-time').value = t.time || '';
+  document.getElementById('t-repeat').value = t.repeat || 'none';
+  document.getElementById('t-cal').checked = false;
+  todoCat = t.cat; renderTodoCats();
+  document.getElementById('todo-sheet-title').textContent = editingTodo ? 'ToDoを編集' : 'ToDoを追加';
+  document.getElementById('todo-submit').textContent = editingTodo ? '更新する' : '追加する';
+  document.getElementById('todo-suggest').innerHTML = editingTodo ? '' : TODO_SUGGEST.map((s, i) =>
+    `<button class="chip" onclick="pickTodo(${i})">${catOf(s[1]).icon} ${s[0]}</button>`).join('');
+  showSheet('todo-sheet');
+}
+function pickTodo(i) {
+  const [title, cat, repeat] = TODO_SUGGEST[i];
+  document.getElementById('t-title').value = title;
+  document.getElementById('t-repeat').value = repeat;
+  todoCat = cat; renderTodoCats();
+}
+function submitTodo() {
+  const title = document.getElementById('t-title').value.trim();
+  if (!title) { toast('やることを入力してください'); return; }
+  const vals = {
+    title, cat: todoCat,
+    date: document.getElementById('t-date').value,
+    time: document.getElementById('t-time').value,
+    repeat: document.getElementById('t-repeat').value,
+  };
+  if (vals.repeat !== 'none' && !vals.date) vals.date = todayStr();
+  let t;
+  if (editingTodo) { t = Object.assign(editingTodo, vals); }
+  else { t = { id: uid(), done: false, doneDates: [], createdAt: Date.now(), ...vals }; data.todos.push(t); }
+  const toCal = document.getElementById('t-cal').checked;
+  persist(); closeSheet(); refreshCurrent();
+  toast(editingTodo ? '更新しました ✓' : 'ToDoを追加しました ✓');
+  if (toCal) setTimeout(() => todoToCalendar(t.id), 300);
+}
+function todoToCalendar(id) {
+  const t = data.todos.find(x => x.id === id); if (!t) return;
+  openCalSheet({ title: `${catOf(t.cat).icon} ${t.title}`, date: t.date || todayStr(), time: t.time, durMin: 30, repeat: t.repeat || 'none', details: 'マイダイエットのToDo' });
+}
+
+// ================= カレンダー連携 =================
+let calEvent = null;
+const pad2 = n => String(n).padStart(2, '0');
+function openCalSheet(ev) {
+  calEvent = ev;
+  const when = `${jpDate(ev.date)}${ev.time ? ' ' + ev.time : '（終日）'}${ev.repeat === 'daily' ? '・毎日くり返し' : ev.repeat === 'weekly' ? '・毎週くり返し' : ''}`;
+  document.getElementById('cal-preview').innerHTML = `<b>${esc(ev.title)}</b><br>${when}`;
+  showSheet('cal-sheet');
+}
+function evTimes(ev) {
+  if (!ev.time) {
+    const s = ev.date.replace(/-/g, ''), e = addDays(ev.date, 1).replace(/-/g, '');
+    return { allDay: true, s, e };
+  }
+  const [h, m] = ev.time.split(':').map(Number);
+  const st = parse(ev.date); st.setHours(h, m, 0, 0);
+  const en = new Date(st.getTime() + (ev.durMin || 30) * 60000);
+  const f = d => `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}T${pad2(d.getHours())}${pad2(d.getMinutes())}00`;
+  return { allDay: false, s: f(st), e: f(en) };
+}
+function rrule(ev) {
+  return ev.repeat === 'daily' ? 'RRULE:FREQ=DAILY' : ev.repeat === 'weekly' ? 'RRULE:FREQ=WEEKLY' : '';
+}
+function googleCalUrl(ev) {
+  const t = evTimes(ev);
+  const q = new URLSearchParams({ action: 'TEMPLATE', text: ev.title, dates: `${t.s}/${t.e}`, details: ev.details || '' });
+  try { q.set('ctz', Intl.DateTimeFormat().resolvedOptions().timeZone); } catch (e) {}
+  if (rrule(ev)) q.set('recur', rrule(ev));
+  return 'https://calendar.google.com/calendar/render?' + q.toString();
+}
+function icsText(ev) {
+  const t = evTimes(ev);
+  const escI = s => String(s || '').replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+  const now = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+  const lines = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//MyDiet//JP', 'CALSCALE:GREGORIAN', 'BEGIN:VEVENT',
+    `UID:${uid()}${Date.now()}@mydiet`, `DTSTAMP:${now}`,
+    t.allDay ? `DTSTART;VALUE=DATE:${t.s}` : `DTSTART:${t.s}`,
+    t.allDay ? `DTEND;VALUE=DATE:${t.e}` : `DTEND:${t.e}`,
+  ];
+  if (rrule(ev)) lines.push(rrule(ev));
+  lines.push(`SUMMARY:${escI(ev.title)}`, `DESCRIPTION:${escI(ev.details)}`);
+  if (!t.allDay) lines.push('BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${escI(ev.title)}`, 'TRIGGER:PT0M', 'END:VALARM');
+  lines.push('END:VEVENT', 'END:VCALENDAR');
+  return lines.join('\r\n');
+}
+function eventText(ev) {
+  return `【予定】${ev.title}\n日時：${jpDate(ev.date)} ${ev.time || '終日'}${ev.repeat === 'daily' ? '（毎日）' : ev.repeat === 'weekly' ? '（毎週）' : ''}${ev.details ? '\n' + ev.details : ''}`;
+}
+async function shareOrCopy(text, title) {
+  if (navigator.share) {
+    try { await navigator.share({ title, text }); return; } catch (e) { if (e.name === 'AbortError') return; }
+  }
+  try { await navigator.clipboard.writeText(text); toast('コピーしました。貼り付けて使ってください'); }
+  catch (e) { prompt('この文章をコピーしてください', text); }
+}
+function calAction(kind) {
+  const ev = calEvent; if (!ev) return;
+  if (kind === 'google') window.open(googleCalUrl(ev), '_blank');
+  if (kind === 'ics') {
+    const blob = new Blob([icsText(ev)], { type: 'text/calendar' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'mydiet-event.ics'; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+  if (kind === 'timetree') shareOrCopy(eventText(ev), ev.title);
+  closeSheet();
+}
+
+function renderReminders() {
+  document.getElementById('reminder-list').innerHTML = data.settings.reminders.map(r => `
+    <div class="rem"><span class="t">${r.repeat === 'weekly' ? '🗓' : '🔁'} ${esc(r.title)}</span>
+      <input class="input" type="time" value="${r.time}" onchange="setReminderTime('${r.id}', this.value)">
+      <button class="btn secondary" onclick="reminderToCalendar('${r.id}')">登録</button></div>`).join('');
+}
+function setReminderTime(id, v) {
+  const r = data.settings.reminders.find(x => x.id === id);
+  if (r && v) { r.time = v; persist(); }
+}
+function reminderToCalendar(id) {
+  const r = data.settings.reminders.find(x => x.id === id); if (!r) return;
+  let date = todayStr();
+  if (r.repeat === 'weekly') { const d = parse(date); date = addDays(date, (7 - d.getDay()) % 7); } // 次の日曜
+  openCalSheet({ title: `🥗 ${r.title}`, date, time: r.time, durMin: 10, repeat: r.repeat, details: 'マイダイエットのリマインダー' });
+}
+function goalToCalendar() {
+  const s = data.settings;
+  if (!s.targetDate) { toast('先に「目標日」を設定してください'); return; }
+  openCalSheet({ title: `🎯 目標体重${s.targetWeight ? ' ' + s.targetWeight + 'kg' : ''} 達成日`, date: s.targetDate, time: '', repeat: 'none', details: 'マイダイエットで決めた目標日です。' });
+}
+function saveEmail() {
+  data.settings.email = document.getElementById('set-email').value.trim();
+  persist(); toast('送り先を保存しました');
+}
+
+// ================= 週間レポート =================
+function buildReport() {
+  const today = todayStr(), from = addDays(today, -6);
+  const dates = Array.from({ length: 7 }, (_, i) => addDays(from, i));
+  const days = dates.map(d => data.days[d]).filter(Boolean);
+  const md = d => { const x = parse(d); return `${x.getMonth() + 1}/${x.getDate()}`; };
+  const goal = plan().goal;
+  const lines = [`🥗 マイダイエット 週間レポート`, `期間：${md(from)}〜${md(today)}`, ''];
+
+  const ws = dates.filter(d => data.days[d] && data.days[d].weight);
+  if (ws.length) {
+    const a = data.days[ws[0]].weight, b = data.days[ws[ws.length - 1]].weight, diff = r1(b - a);
+    lines.push(ws.length > 1 ? `⚖️ 体重：${a} → ${b} kg（${diff > 0 ? '+' : ''}${diff} kg）` : `⚖️ 体重：${b} kg`);
+  } else lines.push('⚖️ 体重：記録なし');
+  if (data.settings.targetWeight && latestWeight()) lines.push(`🎯 目標まであと ${Math.max(0, r1(latestWeight() - data.settings.targetWeight))} kg`);
+
+  const kd = dates.filter(d => data.days[d] && data.days[d].meals.length);
+  if (kd.length) {
+    const ks = kd.map(d => totals(data.days[d].meals).kcal);
+    const avg = Math.round(ks.reduce((a, b) => a + b, 0) / ks.length);
+    const ok = kd.filter(d => totals(data.days[d].meals).kcal <= goal + (data.settings.addExercise ? exerciseKcal(data.days[d]) : 0)).length;
+    lines.push(`🔥 平均摂取：${avg.toLocaleString()} kcal（目標 ${goal.toLocaleString()} kcal）`, `　 目標内の日：${ok} / ${kd.length}日`);
+  } else lines.push('🔥 食事：記録なし');
+
+  const exMin = days.reduce((a, d) => a + (d.exercise || []).reduce((x, y) => x + y.min, 0), 0);
+  const exK = days.reduce((a, d) => a + exerciseKcal(d), 0);
+  lines.push(`🏃 運動：合計 ${exMin}分（約 ${exK} kcal）`);
+
+  const rules = data.settings.rules;
+  if (rules.length) {
+    const done = dates.reduce((a, d) => a + rules.filter(r => data.days[d] && data.days[d].checks[r.id]).length, 0);
+    const all = rules.length * 7;
+    lines.push(`✅ 食事ルール達成：${done} / ${all}（${Math.round(done / all * 100)}%）`);
+  }
+  const waterDays = days.filter(d => d.water);
+  if (waterDays.length) lines.push(`💧 水分：平均 ${r1(waterDays.reduce((a, d) => a + d.water, 0) / waterDays.length)}杯`);
+
+  const fromTs = parse(from).getTime();
+  const todoDone = data.todos.reduce((a, t) => a + (t.repeat && t.repeat !== 'none'
+    ? (t.doneDates || []).filter(d => d >= from && d <= today).length
+    : (t.done && t.doneAt >= fromTs ? 1 : 0)), 0);
+  lines.push(`☑️ ToDo完了：${todoDone}件`);
+  const fasts = data.fasting.log.filter(f => f.end >= fromTs);
+  if (fasts.length) lines.push(`⏱ 断食：${fasts.length}回（目標達成 ${fasts.filter(f => f.end - f.start >= (f.goalH || 16) * 3600000).length}回）`);
+  const memos = dates.filter(d => data.days[d] && data.days[d].memo).slice(-3);
+  if (memos.length) { lines.push('', '📝 メモ'); memos.forEach(d => lines.push(`・${md(d)} ${data.days[d].memo.replace(/\n/g, ' ')}`)); }
+  return lines.join('\n');
+}
+function renderReport() { document.getElementById('report').textContent = buildReport(); }
+function sendReport(kind) {
+  const body = buildReport();
+  const subj = `マイダイエット 週間レポート（${jpDate(todayStr())}）`;
+  const to = data.settings.email || '';
+  if (kind === 'gmail') {
+    const q = new URLSearchParams({ view: 'cm', fs: '1', to, su: subj, body });
+    window.open('https://mail.google.com/mail/?' + q.toString(), '_blank');
+  } else if (kind === 'mail') {
+    location.href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
+  } else {
+    shareOrCopy(body, subj);
+  }
+}
+
+// ================= シート共通 =================
+function showSheet(id) {
+  document.querySelectorAll('.sheet').forEach(s => s.classList.toggle('show', s.id === id));
+  document.getElementById('overlay').classList.add('show');
+}
+function refreshCurrent() {
+  const active = document.querySelector('.page.active').id.replace('page-', '');
+  if (active === 'today') renderToday();
+  if (active === 'todo') renderTodos();
+}
+
+document.getElementById('todo-filter').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  todoFilter = b.dataset.r; setSeg('todo-filter', b.dataset.r); renderTodos();
+});
+
+// ================= 共通 =================
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + name));
+  document.querySelectorAll('nav.bottom button').forEach(b => b.classList.toggle('on', b.dataset.page === name));
+  window.scrollTo(0, 0);
+  if (name === 'today') renderToday();
+  if (name === 'progress') renderProgress();
+  if (name === 'todo') renderTodos();
+  if (name === 'settings') renderSettings();
+}
+document.querySelectorAll('nav.bottom button').forEach(b => b.addEventListener('click', () => {
+  if (b.dataset.page === 'today') curDate = todayStr();
+  showPage(b.dataset.page);
+}));
+
+function esc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ホーム画面アプリ用（オフライン対応）
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+// 初回は設定画面へ案内
+if (!data.settings.startWeight && !Object.keys(data.days).length) {
+  showPage('settings');
+  setTimeout(() => toast('まずはからだのデータと目標を入れましょう'), 300);
+} else {
+  renderToday();
+}
+</script>
+</body>
+</html>
