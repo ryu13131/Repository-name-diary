@@ -1,5 +1,5 @@
 // オフラインでも開けるようにするための仕組み
-const CACHE = 'mydiet-v2';
+const CACHE = 'mydiet-v3';
 const FILES = [
   './diet.html', './index.html', './manifest.webmanifest', './diary.webmanifest',
   './icons/diary-180.png', './icons/diary-192.png', './icons/diary-512.png',
@@ -17,6 +17,7 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  if (new URL(e.request.url).hostname === 'api.anthropic.com') return;
   const isPage = e.request.mode === 'navigate';
   if (isPage) {
     // ページは最新を優先し、オフライン時は保存しておいたものを表示
