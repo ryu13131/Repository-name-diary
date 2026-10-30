@@ -41,3 +41,4 @@ python3 scripts/plot_weight.py --days 30    # 直近30日
 - 🥗 マイダイエット（スマホ用アプリ）：`diet.html`
 
 GitHub Pages で公開しています。`_config.yml` で `data/` などはサイトに出ないようにしています。
+- 📒 ダイエット記録（data/ の記録を見るアプリ）：`coach.html`

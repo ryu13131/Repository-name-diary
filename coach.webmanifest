@@ -1,0 +1,26 @@
+{
+  "id": "./coach.html",
+  "name": "ダイエット記録",
+  "short_name": "記録",
+  "description": "Claudeと続けるダイエットの記録（体重・食事・運動）",
+  "lang": "ja",
+  "start_url": "./coach.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f6f9",
+  "theme_color": "#3d5a80",
+  "icons": [
+    {
+      "src": "icons/coach-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/coach-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
