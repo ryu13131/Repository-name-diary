@@ -233,30 +233,20 @@
   .rem input[type=time] { width: 110px; }
   .fast-time { font-size: 1.8rem; font-weight: bold; font-variant-numeric: tabular-nums; text-align: center; }
   .seg { flex-wrap: wrap; }
-  .entry-btns { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin-bottom: 12px; }
   .btn.big { padding: 14px 10px; font-size: 1rem; border-radius: 12px; }
-  .ph-imgs { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 10px; }
-  .ph-imgs img { height: 200px; max-width: 100%; object-fit: cover; border-radius: 12px; flex-shrink: 0; background: var(--bg); }
-  .ph-imgs.many img { height: 140px; max-width: 70%; }
-  .ph-status { display: flex; align-items: center; gap: 10px; font-size: .88rem; }
-  .ph-status:not(:empty) { padding: 10px 12px; border-radius: 10px; margin-bottom: 10px; }
-  .ph-status.busy { background: var(--green-soft); color: var(--green-dark); }
-  .ph-status.err { background: #fdeaea; color: var(--danger); }
-  .spinner { width: 18px; height: 18px; border: 3px solid #bfe3d1; border-top-color: var(--green); border-radius: 50%; animation: spin .8s linear infinite; flex-shrink: 0; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .dish { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
-  .dish:first-child { border-top: none; }
-  .dish.off { opacity: .45; }
-  .dish-body { flex: 1; min-width: 0; }
-  .dish-name { width: 100%; border: none; border-bottom: 1px dashed var(--line); font-weight: bold; font-size: 16px; padding: 2px 0; background: none; outline: none; }
-  .dish .meta { font-size: .75rem; color: var(--muted); margin-top: 2px; }
-  .qty-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line); background: #fff; font-size: 1rem; }
-  .qty { min-width: 36px; text-align: center; font-size: .85rem; font-variant-numeric: tabular-nums; }
-  .kcal-in { width: 80px; margin-left: auto; text-align: right; }
-  .ph-total { margin-top: 8px; padding-top: 8px; border-top: 2px solid var(--line); font-size: .95rem; }
-  .meal-thumb { width: 34px; height: 34px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
-  .steps { padding-left: 1.3em; font-size: .88rem; line-height: 1.9; margin-bottom: 14px; }
-  .ok-text { color: var(--green-dark); font-size: .8rem; }
+  .food-cats { display: flex; gap: 6px; overflow-x: auto; padding: 8px 0 4px; scrollbar-width: none; }
+  .food-cats::-webkit-scrollbar { display: none; }
+  .food-cats button { flex-shrink: 0; border: 1px solid var(--line); background: #fff; border-radius: 16px; padding: 5px 11px; font-size: .78rem; color: var(--text); }
+  .food-cats button.on { background: var(--green); border-color: var(--green); color: #fff; }
+  .food-list { max-height: 260px; overflow-y: auto; margin: 4px 0 12px; border: 1px solid var(--line); border-radius: 10px; }
+  .food-row { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: #fff; border: none; border-top: 1px solid var(--line); padding: 10px 12px; font-size: .9rem; color: var(--text); }
+  .food-row:first-child { border-top: none; }
+  .food-row.sel { background: var(--green-soft); }
+  .food-row .nm { flex: 1; min-width: 0; }
+  .food-row .tag { font-size: .68rem; color: var(--muted); margin-left: 4px; }
+  .food-row .kc { color: var(--muted); font-size: .8rem; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .food-head { font-size: .72rem; color: var(--muted); font-weight: bold; padding: 6px 12px; background: var(--bg); }
+  .food-empty { padding: 14px 12px; font-size: .85rem; color: var(--muted); line-height: 1.7; }
 </style>
 </head>
 <body>
@@ -303,11 +293,7 @@
 
     <div class="card">
       <div class="card-title">🍽 食事 <button class="add-btn" onclick="copyYesterday()">昨日をコピー</button></div>
-      <div class="entry-btns">
-        <button class="btn big" onclick="startPhoto()">📷 写真で記録</button>
-        <button class="btn big ghost" onclick="openSheet()">✏️ 手入力</button>
-      </div>
-      <input type="file" id="photo-input" accept="image/*" multiple style="display:none" onchange="onPhotoPicked(event)">
+      <button class="btn big block" onclick="openSheet()" style="margin-bottom:12px">＋ 食事を追加</button>
       <div id="meals"></div>
     </div>
 
@@ -485,15 +471,6 @@
       <div id="myfood-list"></div>
     </div>
 
-    <div class="card" id="ai-card">
-      <div class="card-title">📷 写真でカロリー判定（AI）</div>
-      <div class="field"><label>Claude APIキー</label>
-        <input class="input" type="password" id="set-apikey" placeholder="sk-ant-..." autocomplete="off" onchange="saveApiKey()">
-      </div>
-      <div class="row"><button class="btn secondary" onclick="testApiKey()">保存して確認</button> <span id="key-test" class="muted"></span></div>
-      <p class="muted" style="margin-top:10px;line-height:1.7">キーは <a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a> で作れます。料金は写真1枚あたり約3〜6円（Anthropicへの支払い）。キーはこのスマホの中だけに保存され、写真の判定のときにAnthropicにだけ送られます。</p>
-    </div>
-
     <div class="card">
       <div class="card-title">🔗 カレンダー・メール連携</div>
       <div class="field"><label>レポートの送り先メールアドレス（自分のGmailなど）</label>
@@ -539,11 +516,11 @@
 <div class="overlay" id="overlay" onclick="closeSheet()"></div>
 <div class="sheet" id="sheet">
   <h2><span id="sheet-title">食事を追加</span><button class="icon-btn" onclick="closeSheet()" style="font-size:1.3rem">✕</button></h2>
-  <button class="btn block secondary" id="sheet-photo" onclick="closeSheet();startPhoto()" style="margin-bottom:12px">📷 写真からAIで判定する</button>
   <div class="meal-tabs" id="meal-tabs"></div>
-  <input class="input" id="food-search" placeholder="🔍 食品をさがす（例：ごはん）" style="width:100%" oninput="renderChips()">
-  <div class="chips" id="chips"></div>
-  <div class="field"><label>食品名</label><input class="input" id="f-name" placeholder="例：鶏むね肉のソテー"></div>
+  <input class="input" id="food-search" type="search" placeholder="🔍 食品をさがす（例：からあげ、そば、なっとう）" style="width:100%" oninput="renderChips()" autocomplete="off">
+  <div class="food-cats" id="food-cats"></div>
+  <div class="food-list" id="chips"></div>
+  <div class="field"><label>食品名</label><input class="input" id="f-name" placeholder="例：鶏むね肉のソテー" oninput="nameFromSearch=false"></div>
   <div class="grid4">
     <div><span class="mini-label">カロリー kcal</span><input class="input" type="number" inputmode="decimal" id="f-kcal"></div>
     <div><span class="mini-label">たんぱく質 g</span><input class="input" type="number" inputmode="decimal" id="f-p"></div>
@@ -560,41 +537,6 @@
     </label>
   </div>
   <button class="btn block" id="sheet-submit" onclick="submitFood()">追加する</button>
-</div>
-
-<!-- 写真判定シート -->
-<div class="sheet" id="photo-sheet">
-  <h2><span>📷 写真で記録</span><button class="icon-btn" onclick="closeSheet()" style="font-size:1.3rem">✕</button></h2>
-  <div id="ph-imgs" class="ph-imgs"></div>
-  <div id="ph-status" class="ph-status"></div>
-  <div id="ph-result">
-    <div class="meal-tabs" id="ph-tabs"></div>
-    <div id="ph-list"></div>
-    <div id="ph-total" class="ph-total"></div>
-  </div>
-  <div class="row" style="margin:12px 0">
-    <input class="input" id="ph-hint" placeholder="補足（例：ご飯は半分残した）" style="flex:1">
-    <button class="btn ghost" id="ph-retry" onclick="analyzePhoto()">もう一度判定</button>
-  </div>
-  <button class="btn block" id="ph-save" onclick="savePhotoMeal()">この内容で記録する</button>
-  <div class="two" style="margin-top:8px">
-    <button class="btn ghost" onclick="startPhoto(true)">＋ 写真を追加</button>
-    <button class="btn ghost" onclick="closeSheet();startPhoto()">撮り直す</button>
-  </div>
-</div>
-
-<!-- APIキー案内シート -->
-<div class="sheet" id="key-sheet">
-  <h2><span>📷 写真判定を使う準備</span><button class="icon-btn" onclick="closeSheet()" style="font-size:1.3rem">✕</button></h2>
-  <p style="font-size:.9rem;line-height:1.8;margin-bottom:12px">写真から料理を判定するには、AI（Claude）の<b>APIキー</b>が必要です。最初に1回だけ設定してください。</p>
-  <ol class="steps">
-    <li><a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a> でアカウントを作る</li>
-    <li>「Billing」でクレジットを購入（$5〜。写真1枚あたり約3〜6円）</li>
-    <li>「API Keys」→「Create Key」でキーを作ってコピー</li>
-    <li>このアプリの「設定」→「写真でカロリー判定」に貼り付ける</li>
-  </ol>
-  <button class="btn block" onclick="showPage('settings');closeSheet();setTimeout(()=>document.getElementById('set-apikey').focus(),300)">設定画面へ</button>
-  <button class="btn block ghost" style="margin-top:8px" onclick="closeSheet();openSheet()">今回は手入力する</button>
 </div>
 
 <!-- ToDo追加シート -->
@@ -628,6 +570,7 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="foods.js"></script>
 <script>
 // ================= データ =================
 const KEY = 'diet_v1';
@@ -636,44 +579,6 @@ const MEALS = [
   { id: 'lunch', label: '昼食', icon: '☀️' },
   { id: 'dinner', label: '夕食', icon: '🌙' },
   { id: 'snack', label: '間食', icon: '🍪' },
-];
-
-// よく食べるものの目安（1食分のおおよその値）
-const PRESETS = [
-  ['ごはん 茶碗1杯(150g)', 234, 3.8, 0.5, 55.7],
-  ['ごはん 小盛り(100g)', 156, 2.5, 0.3, 37.1],
-  ['玄米ごはん(150g)', 228, 4.2, 1.5, 53.4],
-  ['食パン 6枚切1枚', 149, 5.3, 2.5, 26.6],
-  ['おにぎり(鮭)', 180, 5.0, 1.5, 38.0],
-  ['卵 1個', 76, 6.2, 5.2, 0.2],
-  ['ゆで卵 1個', 76, 6.2, 5.2, 0.2],
-  ['納豆 1パック', 90, 7.4, 4.5, 5.4],
-  ['豆腐 1/2丁(150g)', 84, 7.4, 4.5, 2.4],
-  ['味噌汁 1杯', 40, 2.5, 1.2, 4.5],
-  ['鶏むね肉 皮なし100g', 105, 23.3, 1.9, 0],
-  ['サラダチキン 1個', 110, 24.0, 1.5, 0.5],
-  ['鮭の塩焼き 1切れ', 150, 18.0, 8.0, 0.1],
-  ['豚しょうが焼き 1人前', 330, 18.0, 22.0, 10.0],
-  ['唐揚げ 3個', 290, 18.0, 18.0, 12.0],
-  ['野菜サラダ(ドレッシング少々)', 50, 1.2, 3.0, 5.0],
-  ['ブロッコリー 50g', 17, 2.2, 0.3, 2.6],
-  ['バナナ 1本', 86, 1.1, 0.2, 22.5],
-  ['りんご 1/2個', 70, 0.2, 0.2, 19.0],
-  ['ヨーグルト 無糖100g', 62, 3.6, 3.0, 4.9],
-  ['牛乳 200ml', 134, 6.6, 7.6, 9.6],
-  ['豆乳 無調整200ml', 92, 7.2, 4.0, 6.2],
-  ['プロテイン 1杯(水)', 110, 20.0, 1.5, 4.0],
-  ['ラーメン 1杯', 500, 20.0, 15.0, 70.0],
-  ['カレーライス', 750, 18.0, 22.0, 115.0],
-  ['牛丼 並', 650, 20.0, 22.0, 90.0],
-  ['ざるそば', 300, 12.0, 2.0, 58.0],
-  ['パスタ ミートソース', 600, 22.0, 18.0, 82.0],
-  ['コンビニ弁当', 700, 22.0, 25.0, 95.0],
-  ['ポテトチップス 1袋(60g)', 330, 3.0, 21.0, 32.0],
-  ['チョコレート 板1/4', 140, 1.7, 8.5, 14.0],
-  ['ショートケーキ', 330, 5.0, 18.0, 37.0],
-  ['缶コーヒー(加糖)', 70, 1.0, 1.0, 13.0],
-  ['ビール 350ml', 140, 1.1, 0, 10.9],
 ];
 
 const DEFAULT_REMINDERS = [
@@ -716,6 +621,8 @@ function load() {
       d.settings = Object.assign(base.settings, d.settings);
       d.myFoods = d.myFoods || [];
       d.todos = d.todos || [];
+      delete d.settings.apiKey;
+      Object.values(d.days).forEach(day => { delete day.photos; });
       d.fasting = d.fasting || base.fasting;
       return d;
     }
@@ -840,7 +747,6 @@ function renderToday() {
       <div class="meal-head"><span>${m.icon} ${m.label} <span class="sum">${sum ? sum + ' kcal' : ''}</span></span>
         <button class="add-btn" onclick="openSheet('${m.id}')">＋</button></div>
       ${items.map(x => `<div class="meal-item">
-          ${x.photoId && photoThumb(day, x.photoId) ? `<img class="meal-thumb" src="${photoThumb(day, x.photoId)}" alt="">` : ''}
           <span class="name" onclick="openSheet('${m.id}','${x.id}')">${esc(x.name)}</span>
           <span class="kc">${Math.round(x.kcal)} kcal</span>
           <button class="icon-btn" onclick="deleteMeal('${x.id}')" aria-label="削除">✕</button>
@@ -953,6 +859,7 @@ function openSheet(type, editId) {
   qty = 1; baseVals = null;
   setSeg('qty-seg', '1');
   ['f-name', 'f-kcal', 'f-p', 'f-f', 'f-c', 'food-search'].forEach(id => document.getElementById(id).value = '');
+  foodCat = 'all'; pickedName = null; nameFromSearch = false;
   document.getElementById('f-save').checked = false;
   if (editingId) {
     const m = dayData(curDate).meals.find(x => x.id === editingId);
@@ -965,7 +872,6 @@ function openSheet(type, editId) {
     }
   }
   document.getElementById('sheet-title').textContent = editingId ? '食事を編集' : '食事を追加';
-  document.getElementById('sheet-photo').style.display = editingId ? 'none' : '';
   document.getElementById('sheet-submit').textContent = editingId ? '更新する' : '追加する';
   renderMealTabs(); renderChips();
   showSheet('sheet');
@@ -979,25 +885,103 @@ function renderMealTabs() {
     `<button class="${m.id === sheetType ? 'on' : ''}" onclick="sheetType='${m.id}';renderMealTabs()">${m.icon} ${m.label}</button>`).join('');
 }
 
-function allFoods() {
-  return [
-    ...data.myFoods.map(f => ({ ...f, mine: true })),
-    ...PRESETS.map(([name, kcal, p, f, c]) => ({ name, kcal, p, f, c })),
-  ];
+// ===== 食品検索 =====
+// ひらがな・カタカナ・全角半角・空白・長音の違いを吸収して比べる
+function normText(str) {
+  return String(str).normalize('NFKC').toLowerCase()
+    .replace(/[ァ-ヶ]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60))
+    .replace(/[\sー〜~・･\-_()（）\[\]［］「」、。,.\/／&＆]/g, '');
+}
+const FOOD_CATS = Object.keys(FOOD_DB);
+const DB_FOODS = FOOD_CATS.flatMap(cat => FOOD_DB[cat].map(([name, yomi, kcal, p, f, c]) =>
+  ({ name, cat, kcal, p, f, c, src: 'db', nn: normText(name), rd: yomi.split(' ').map(normText), key: normText(`${name} ${yomi} ${cat}`) })));
+let foodCat = 'all', pickedName = null, nameFromSearch = false;
+
+// 過去に記録した食事（新しい順・名前ごとに1件・1人前に換算）
+function historyFoods() {
+  const seen = new Set(), out = [];
+  Object.keys(data.days).sort().reverse().forEach(d => {
+    (data.days[d].meals || []).slice().reverse().forEach(m => {
+      const mm = m.name.match(/^(.*?)\s*×([\d.]+)$/);
+      const name = mm ? mm[1] : m.name, q = mm ? parseFloat(mm[2]) || 1 : 1;
+      if (seen.has(name) || out.length >= 60) return;
+      seen.add(name);
+      out.push({ name, kcal: Math.round(m.kcal / q), p: r1(m.p / q), f: r1(m.f / q), c: r1(m.c / q), src: 'recent', nn: normText(name), key: normText(name) });
+    });
+  });
+  return out;
+}
+function myFoods() {
+  return data.myFoods.map(f => ({ ...f, src: 'mine', nn: normText(f.name), key: normText(f.name) }));
+}
+function searchFoods(q) {
+  const tokens = q.split(/[\s　]+/).map(normText).filter(Boolean);
+  const pool = [...myFoods(), ...historyFoods(), ...DB_FOODS.filter(f => foodCat === 'all' || f.cat === foodCat)]
+    .filter(f => foodCat === 'all' || f.src === 'db');
+  const bonus = { mine: 30, recent: 20, db: 0 };
+  let hits = pool.filter(f => tokens.every(t => f.key.includes(t)))
+    .map(f => ({ f, score: bonus[f.src]
+      + (f.nn.startsWith(tokens[0]) ? 20 : f.nn.includes(tokens[0]) ? 10 : 0)
+      // 読み方がぴったり一致するもの（例：「からあげ」→ 唐揚げ）を上に。最初の読みが一致すると最優先
+      + (f.rd ? (f.rd[0] === tokens[0] ? 35 : f.rd.includes(tokens[0]) ? 15 : f.rd.some(r => r.startsWith(tokens[0])) ? 12 : 0) : 0) }));
+  let fuzzy = false;
+  if (!hits.length) {
+    // 見つからないときは、2文字ずつの一致で「近いもの」を探す
+    const grams = new Set();
+    tokens.join('').split('').forEach((_, i, a) => { if (i < a.length - 1) grams.add(a[i] + a[i + 1]); });
+    if (!grams.size && tokens[0]) grams.add(tokens[0]);
+    hits = pool.map(f => ({ f, score: [...grams].filter(g => f.key.includes(g)).length * 10 + bonus[f.src] / 10 }))
+      .filter(h => h.score >= 10);
+    fuzzy = true;
+  }
+  const seen = new Set();
+  const list = hits.sort((a, b) => b.score - a.score).map(h => h.f)
+    .filter(f => !seen.has(f.name) && seen.add(f.name)).slice(0, 60);
+  return { list, fuzzy };
+}
+function renderFoodCats() {
+  document.getElementById('food-cats').innerHTML = ['all', ...FOOD_CATS].map(c =>
+    `<button class="${c === foodCat ? 'on' : ''}" onclick="foodCat='${c}';renderChips()">${c === 'all' ? 'すべて' : c}</button>`).join('');
+}
+function foodRow(f, i) {
+  const tag = f.src === 'mine' ? '⭐' : f.src === 'recent' ? '🕘' : '';
+  return `<button class="food-row ${f.name === pickedName ? 'sel' : ''}" onclick="pickFood(${i})"><span class="nm">${tag ? tag + ' ' : ''}${esc(f.name)}${f.cat && foodCat === 'all' ? `<span class="tag">${f.cat}</span>` : ''}</span><span class="kc">${Math.round(f.kcal)} kcal</span></button>`;
 }
 function renderChips() {
-  const q = document.getElementById('food-search').value.trim();
-  const list = allFoods().filter(f => !q || f.name.includes(q));
+  renderFoodCats();
+  const raw = document.getElementById('food-search').value.trim();
+  const box = document.getElementById('chips');
+  // 見つからない食品はそのまま名前欄に入れて、手入力しやすくする
+  const nameEl = document.getElementById('f-name');
+  if (raw && (!nameEl.value || nameFromSearch)) { nameEl.value = raw; nameFromSearch = true; pickedName = null; }
+  let list, html = '';
+  if (!raw) {
+    if (foodCat === 'all') {
+      const mine = myFoods(), recent = historyFoods().filter(h => !mine.some(m => m.name === h.name)).slice(0, 15);
+      list = [...recent, ...mine];
+      if (recent.length) html += `<div class="food-head">🕘 最近食べたもの</div>` + recent.map((f, i) => foodRow(f, i)).join('');
+      if (mine.length) html += `<div class="food-head">⭐ マイ食品</div>` + mine.map((f, i) => foodRow(f, recent.length + i)).join('');
+      if (!list.length) { list = DB_FOODS.filter(f => f.cat === FOOD_CATS[0]); html = `<div class="food-head">${FOOD_CATS[0]}</div>` + list.map(foodRow).join(''); }
+    } else {
+      list = DB_FOODS.filter(f => f.cat === foodCat);
+      html = list.map(foodRow).join('');
+    }
+  } else {
+    const r = searchFoods(raw);
+    list = r.list;
+    if (list.length) html = (r.fuzzy ? `<div class="food-head">ぴったりのものがないので、近いものを表示しています</div>` : '') + list.map(foodRow).join('');
+    else html = `<div class="food-empty">「${esc(raw)}」は見つかりませんでした。<br>下にカロリーを入れて追加できます。「マイ食品に登録」にチェックすると、次から検索に出てきます。</div>`;
+  }
   window._chipList = list;
-  document.getElementById('chips').innerHTML = list.length
-    ? list.map((f, i) => `<button class="chip ${f.mine ? 'mine' : ''}" onclick="pickFood(${i})">${f.mine ? '⭐ ' : ''}${esc(f.name)} <small>${f.kcal}</small></button>`).join('')
-    : '<span class="muted">見つかりません。下に直接入力してください</span>';
+  box.innerHTML = html;
 }
 function pickFood(i) {
   const f = window._chipList[i];
   document.getElementById('f-name').value = f.name;
+  nameFromSearch = false; pickedName = f.name;
   baseVals = { kcal: f.kcal, p: f.p, f: f.f, c: f.c };
   applyQty();
+  renderChips();
 }
 function applyQty() {
   if (!baseVals) {
@@ -1033,8 +1017,6 @@ function submitFood() {
   if (!kcal) { toast('カロリーを入力してください'); return; }
   const item = { id: editingId || uid(), type: sheetType, name: qty !== 1 && !editingId ? `${name} ×${qty}` : name, kcal, p: num('f-p'), f: num('f-f'), c: num('f-c') };
   const day = dayData(curDate, true);
-  const prev = editingId && day.meals.find(m => m.id === editingId);
-  if (prev && prev.photoId) item.photoId = prev.photoId; // 写真のサムネイルを残す
   if (editingId) day.meals = day.meals.map(m => m.id === editingId ? item : m);
   else day.meals.push(item);
   if (document.getElementById('f-save').checked && !data.myFoods.some(f => f.name === name)) {
@@ -1170,7 +1152,6 @@ function renderSettings() {
   document.getElementById('set-addex').checked = !!s.addExercise;
   document.getElementById('set-fast').value = String(s.fastHours || 16);
   document.getElementById('set-email').value = s.email || '';
-  document.getElementById('set-apikey').value = s.apiKey || '';
   renderCalc(); renderRuleEditor(); renderMyFoods(); renderReminders();
 }
 
@@ -1675,266 +1656,6 @@ function sendReport(kind) {
   } else {
     shareOrCopy(body, subj);
   }
-}
-
-// ================= 写真でカロリー判定（Claude） =================
-const SDK_URL = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@0.131.0/+esm';
-const AI_MODEL = 'claude-opus-5-5';
-let AnthropicLib = null;
-let photo = null; // { id, b64, thumb, dishes: [...], type, note }
-
-const FOOD_SCHEMA = {
-  type: 'object',
-  properties: {
-    dishes: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          name: { type: 'string', description: '料理・食品名（日本語の一般的な名前）' },
-          portion: { type: 'string', description: '見た目の量（例：茶碗1杯・約150g）' },
-          kcal: { type: 'number' },
-          protein: { type: 'number', description: 'たんぱく質 g' },
-          fat: { type: 'number', description: '脂質 g' },
-          carbs: { type: 'number', description: '炭水化物 g' },
-          confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
-        },
-        required: ['name', 'portion', 'kcal', 'protein', 'fat', 'carbs', 'confidence'],
-        additionalProperties: false,
-      },
-    },
-    note: { type: 'string', description: '食事全体への一言（40字以内）' },
-  },
-  required: ['dishes', 'note'],
-  additionalProperties: false,
-};
-
-const FOOD_SYSTEM = `あなたは日本の管理栄養士です。食事の写真から、写っている料理・食品・飲み物をすべて特定し、写っている量を推定して栄養価を計算してください。
-- 量は器の大きさ、箸やスプーンなど周りの物と比べて推定し、日本の一般的な1人前を基準にしてください。
-- 栄養価は日本食品標準成分表の値をもとに、調理に使う油・調味料・ソースも含めて計算してください。
-- 定食やワンプレートは、ごはん・主菜・副菜・汁物のように品ごとに分けてください。
-- 見えない部分（中身や下に隠れた分）は一般的な量を仮定し、判断に自信がない品は confidence を low にしてください。
-- パッケージ商品で栄養成分表示が読める場合は、その値を使ってください。
-- 食べ物が写っていない場合は dishes を空にし、note に理由を書いてください。
-- 写真が複数ある場合は、同じ食事を別の角度や別の皿で撮ったものです。複数の写真に写っている同じ料理は1回だけ数えてください。
-- 大皿の料理や家族の分が一緒に写っている場合は、1人分として推定し、portion に「1人分」と書いてください。
-- 食べ終わった後の空の容器（納豆のパックなど）が写っていれば、1人分食べたものとして含めてください。
-- note は食事全体への前向きな一言アドバイス（40字以内）にしてください。`;
-
-function apiKey() { return (data.settings.apiKey || '').trim(); }
-
-async function getClient() {
-  if (!AnthropicLib) AnthropicLib = (await import(SDK_URL)).default;
-  return new AnthropicLib({ apiKey: apiKey(), dangerouslyAllowBrowser: true, maxRetries: 1 });
-}
-
-const MAX_PHOTOS = 4;
-let appendPhotos = false;
-function startPhoto(append) {
-  if (!apiKey()) { showSheet('key-sheet'); return; }
-  appendPhotos = !!append && !!photo;
-  if (appendPhotos && photo.images.length >= MAX_PHOTOS) { toast(`写真は${MAX_PHOTOS}枚までです`); return; }
-  const inp = document.getElementById('photo-input');
-  inp.value = '';
-  inp.click();
-}
-
-// 送る前に縮小（通信量と料金を抑える）
-function resizeImage(file, max, quality) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      const r = Math.min(1, max / Math.max(img.width, img.height));
-      const c = document.createElement('canvas');
-      c.width = Math.round(img.width * r); c.height = Math.round(img.height * r);
-      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-      URL.revokeObjectURL(url);
-      resolve(c.toDataURL('image/jpeg', quality));
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('画像を読み込めませんでした')); };
-    img.src = url;
-  });
-}
-
-async function onPhotoPicked(ev) {
-  let files = Array.from((ev.target.files) || []);
-  if (!files.length) return;
-  const have = appendPhotos ? photo.images.length : 0;
-  if (have + files.length > MAX_PHOTOS) {
-    files = files.slice(0, MAX_PHOTOS - have);
-    toast(`写真は${MAX_PHOTOS}枚までです。最初の${files.length}枚を使います`);
-  }
-  try {
-    const fulls = await Promise.all(files.map(f => resizeImage(f, 1024, 0.85)));
-    if (!appendPhotos) {
-      const thumb = await resizeImage(files[0], 160, 0.6);
-      photo = { id: uid(), images: [], thumb, dishes: [], type: guessMeal(), note: '' };
-      document.getElementById('ph-hint').value = '';
-    }
-    photo.images.push(...fulls);
-    renderPhotoImages();
-    showSheet('photo-sheet');
-    analyzePhoto();
-  } catch (e) { toast(e.message || '画像を読み込めませんでした'); }
-}
-
-function renderPhotoImages() {
-  const box = document.getElementById('ph-imgs');
-  box.classList.toggle('many', photo.images.length > 1);
-  box.innerHTML = photo.images.map((src, i) => `<img src="${src}" alt="食事の写真${i + 1}">`).join('');
-}
-
-async function analyzePhoto() {
-  if (!photo) return;
-  setPhotoBusy(true, 'AIが料理を判定しています…（10〜20秒ほど）');
-  const hint = document.getElementById('ph-hint').value.trim();
-  try {
-    const client = await getClient();
-    const response = await client.beta.messages.create({
-      model: AI_MODEL,
-      max_tokens: 16000,
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
-      output_config: { effort: 'low', format: { type: 'json_schema', schema: FOOD_SCHEMA } },
-      system: FOOD_SYSTEM,
-      messages: [{
-        role: 'user',
-        content: [
-          ...photo.images.map(src => ({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: src.split(',')[1] } })),
-          { type: 'text', text: (photo.images.length > 1 ? `${photo.images.length}枚の写真は同じ1回の食事です。` : '') + 'この食事に写っている料理と量、カロリー・PFCを推定してください。' + (hint ? `\n補足：${hint}` : '') },
-        ],
-      }],
-    });
-    if (response.stop_reason === 'refusal') throw new Error('この写真は判定できませんでした。別の写真で試してください。');
-    if (response.stop_reason === 'max_tokens') throw new Error('判定が途中で止まりました。もう一度お試しください。');
-    const block = response.content.find(b => b.type === 'text');
-    if (!block) throw new Error('判定結果を受け取れませんでした。');
-    const result = JSON.parse(block.text);
-    photo.note = result.note || '';
-    photo.dishes = (result.dishes || []).map(d => ({
-      on: true, name: d.name, portion: d.portion, confidence: d.confidence, qty: 1, kcalOverride: null,
-      base: { kcal: Math.max(0, d.kcal), p: Math.max(0, d.protein), f: Math.max(0, d.fat), c: Math.max(0, d.carbs) },
-    }));
-    setPhotoBusy(false);
-    renderPhotoResult();
-  } catch (e) {
-    setPhotoBusy(false, aiErrorMessage(e));
-  }
-}
-
-function aiErrorMessage(e) {
-  const A = AnthropicLib;
-  if (A && e instanceof A.AuthenticationError) return '❌ APIキーが正しくありません。設定画面で確認してください。';
-  if (A && e instanceof A.PermissionDeniedError) return '❌ このAPIキーでは利用できません。Anthropicのコンソールで設定を確認してください。';
-  if (A && e instanceof A.RateLimitError) return '⏳ 混み合っています。少し待ってから「もう一度判定」を押してください。';
-  if (A && e instanceof A.BadRequestError) return '❌ ' + (/credit|balance/i.test(e.message) ? 'APIのクレジット残高が足りません。Anthropicのコンソールでチャージしてください。' : '判定できませんでした：' + e.message);
-  if (A && e instanceof A.APIConnectionError) return '📶 通信できませんでした。電波の良い場所でもう一度お試しください。';
-  if (A && e instanceof A.APIError) return '⚠️ AIサービスでエラーが起きました。もう一度お試しください。';
-  if (!A) return '📶 AI機能を読み込めませんでした。インターネットに接続してもう一度お試しください。';
-  return '⚠️ ' + (e.message || '判定できませんでした');
-}
-
-function setPhotoBusy(busy, msg) {
-  const st = document.getElementById('ph-status');
-  st.innerHTML = msg ? (busy ? `<div class="spinner"></div>` : '') + `<span>${esc(msg)}</span>` : '';
-  st.className = 'ph-status' + (busy ? ' busy' : msg ? ' err' : '');
-  document.getElementById('ph-result').style.display = busy || (msg && !photo.dishes.length) ? 'none' : '';
-  document.getElementById('ph-retry').disabled = busy;
-  document.getElementById('ph-save').disabled = busy;
-}
-
-function dishKcal(d) { return d.kcalOverride != null ? d.kcalOverride : Math.round(d.base.kcal * d.qty); }
-
-function renderPhotoResult() {
-  document.getElementById('ph-tabs').innerHTML = MEALS.map(m =>
-    `<button class="${m.id === photo.type ? 'on' : ''}" onclick="photo.type='${m.id}';renderPhotoResult()">${m.icon} ${m.label}</button>`).join('');
-  const list = document.getElementById('ph-list');
-  if (!photo.dishes.length) {
-    list.innerHTML = `<div class="empty">料理が見つかりませんでした。${esc(photo.note)}<br>補足を入れてもう一度判定するか、手入力してください。</div>`;
-  } else {
-    list.innerHTML = photo.dishes.map((d, i) => `
-      <div class="dish ${d.on ? '' : 'off'}">
-        <button class="check ${d.on ? 'on' : ''}" onclick="photo.dishes[${i}].on=!photo.dishes[${i}].on;renderPhotoResult()">${d.on ? '✓' : ''}</button>
-        <div class="dish-body">
-          <input class="dish-name" value="${esc(d.name)}" onchange="photo.dishes[${i}].name=this.value">
-          <div class="meta">${esc(d.portion)}${d.confidence === 'low' ? ' <span class="pill over">要確認</span>' : ''}</div>
-          <div class="row" style="margin-top:6px;gap:6px">
-            <button class="qty-btn" onclick="changeQty(${i},-0.5)">−</button>
-            <span class="qty">×${d.qty}</span>
-            <button class="qty-btn" onclick="changeQty(${i},0.5)">＋</button>
-            <input class="input kcal-in" type="number" inputmode="numeric" value="${dishKcal(d)}" onchange="setDishKcal(${i},this.value)">
-            <span class="unit">kcal</span>
-          </div>
-        </div>
-      </div>`).join('');
-  }
-  const on = photo.dishes.filter(d => d.on);
-  const total = on.reduce((a, d) => a + dishKcal(d), 0);
-  document.getElementById('ph-total').innerHTML = photo.dishes.length
-    ? `合計 <b>${total}</b> kcal（${on.length}品）${photo.note ? `<div class="muted" style="margin-top:4px">💬 ${esc(photo.note)}</div>` : ''}`
-    : '';
-}
-function changeQty(i, step) {
-  const d = photo.dishes[i];
-  d.qty = Math.max(0.5, Math.min(5, d.qty + step));
-  d.kcalOverride = null;
-  renderPhotoResult();
-}
-function setDishKcal(i, v) {
-  const n = parseFloat(v);
-  photo.dishes[i].kcalOverride = n >= 0 ? Math.round(n) : null;
-  renderPhotoResult();
-}
-
-function savePhotoMeal() {
-  const on = photo.dishes.filter(d => d.on);
-  if (!on.length) { toast('記録する料理を選んでください'); return; }
-  const day = dayData(curDate, true);
-  day.photos = day.photos || [];
-  day.photos.push({ id: photo.id, thumb: photo.thumb });
-  on.forEach(d => {
-    const kcal = dishKcal(d);
-    const scale = d.base.kcal > 0 ? kcal / d.base.kcal : d.qty; // カロリーを手で直したらPFCも同じ割合で
-    day.meals.push({
-      id: uid(), type: photo.type, photoId: photo.id,
-      name: d.qty !== 1 ? `${d.name} ×${d.qty}` : d.name,
-      kcal, p: r1(d.base.p * scale), f: r1(d.base.f * scale), c: r1(d.base.c * scale),
-    });
-  });
-  prunePhotos();
-  persist(); closeSheet(); renderToday();
-  toast(`${on.length}品を記録しました ✓`);
-}
-
-// 写真の縮小版は直近30日分だけ残す（スマホの保存容量を圧迫しないため）
-function prunePhotos() {
-  const limit = addDays(todayStr(), -30);
-  Object.keys(data.days).forEach(d => { if (d < limit && data.days[d].photos) delete data.days[d].photos; });
-}
-
-function photoThumb(day, id) {
-  const p = (day.photos || []).find(x => x.id === id);
-  return p ? p.thumb : null;
-}
-
-async function testApiKey() {
-  saveApiKey();
-  if (!apiKey()) { toast('APIキーを入力してください'); return; }
-  const out = document.getElementById('key-test');
-  out.textContent = '確認中…'; out.className = 'muted';
-  try {
-    const client = await getClient();
-    await client.models.retrieve(AI_MODEL);
-    out.textContent = '✅ 使えます！「📷 写真で記録」から試してみてください';
-    out.className = 'ok-text';
-  } catch (e) {
-    out.textContent = aiErrorMessage(e); out.className = 'warn';
-  }
-}
-function saveApiKey() {
-  data.settings.apiKey = document.getElementById('set-apikey').value.trim();
-  persist();
 }
 
 // ================= シート共通 =================
