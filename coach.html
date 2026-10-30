@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#3d5a80">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="記録">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="coach.webmanifest">
+<link rel="apple-touch-icon" href="icons/coach-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/coach-192.png">
+<title>ダイエット記録</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --main: #3d5a80;
+    --main-soft: #e8eef6;
+    --green: #2f8f6a;
+    --green-soft: #e6f4ee;
+    --orange: #e0803b;
+    --bg: #f4f6f9;
+    --card: #fff;
+    --text: #25303d;
+    --muted: #7a8696;
+    --line: #e3e8ef;
+    --danger: #d65a5a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); }
+  body {
+    font-family: 'Hiragino Sans', 'Yu Gothic', 'Noto Sans JP', sans-serif;
+    color: var(--text); min-height: 100vh;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+  button { font-family: inherit; cursor: pointer; }
+  header {
+    background: var(--main); color: #fff; position: sticky; top: 0; z-index: 10;
+    padding: 12px 16px; padding-top: calc(12px + env(safe-area-inset-top));
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  header h1 { font-size: 1.1rem; }
+  header .sub { font-size: .72rem; opacity: .8; }
+  .icon-btn { background: rgba(255,255,255,.18); color: #fff; border: none; border-radius: 10px; padding: 8px 12px; font-size: .85rem; }
+  .container { max-width: 640px; margin: 0 auto; padding: 16px; }
+  .card { background: var(--card); border-radius: 14px; padding: 16px; box-shadow: 0 1px 6px rgba(0,0,0,.05); margin-bottom: 14px; }
+  .card-title { font-size: .85rem; font-weight: bold; color: var(--main); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .muted { color: var(--muted); font-size: .8rem; }
+  .big { font-size: 2.2rem; font-weight: bold; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .big small { font-size: 1rem; font-weight: normal; color: var(--muted); }
+  .diff { font-size: .85rem; font-weight: bold; }
+  .down { color: var(--green); } .up { color: var(--orange); }
+  .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stat { background: var(--bg); border-radius: 10px; padding: 10px 6px; text-align: center; }
+  .stat .v { font-size: 1.1rem; font-weight: bold; font-variant-numeric: tabular-nums; }
+  .stat .l { font-size: .7rem; color: var(--muted); margin-top: 2px; }
+  .progress { height: 12px; background: var(--line); border-radius: 6px; overflow: hidden; margin: 12px 0 6px; }
+  .progress span { display: block; height: 100%; background: linear-gradient(90deg, #6fcf9f, var(--green)); }
+  .chart-box { position: relative; height: 230px; }
+  .seg { display: inline-flex; background: var(--bg); border-radius: 8px; padding: 2px; }
+  .seg button { border: none; background: none; padding: 4px 10px; border-radius: 6px; font-size: .75rem; color: var(--muted); }
+  .seg button.on { background: #fff; color: var(--main); font-weight: bold; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .rules { width: 100%; border-collapse: collapse; font-size: .88rem; }
+  .rules td { padding: 7px 0; border-top: 1px solid var(--line); }
+  .rules tr:first-child td { border-top: none; }
+  .rules td.r { text-align: right; width: 64px; font-size: 1.05rem; font-weight: bold; }
+  .mark-o { color: var(--green); } .mark-t { color: var(--orange); } .mark-x { color: var(--danger); } .mark-n { color: #b5bfcb; }
+  .meal { display: grid; grid-template-columns: 52px 1fr; gap: 6px; padding: 6px 0; font-size: .88rem; border-top: 1px solid var(--line); }
+  .meal:first-child { border-top: none; }
+  .meal .k { color: var(--muted); font-size: .8rem; padding-top: 1px; }
+  .ex { display: flex; justify-content: space-between; font-size: .88rem; padding: 6px 0; border-top: 1px solid var(--line); }
+  .ex:first-child { border-top: none; }
+  .bar-row { display: grid; grid-template-columns: 1fr 120px 44px; gap: 8px; align-items: center; font-size: .8rem; padding: 4px 0; }
+  .bar { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; }
+  .bar span { display: block; height: 100%; background: var(--green); border-radius: 4px; }
+  .bar-row .n { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+  details.day { border-top: 1px solid var(--line); padding: 8px 0; }
+  details.day:first-of-type { border-top: none; }
+  details.day summary { cursor: pointer; font-size: .88rem; display: flex; justify-content: space-between; list-style: none; }
+  details.day summary::-webkit-details-marker { display: none; }
+  details.day .body { padding: 6px 0 0 8px; }
+  .empty { text-align: center; color: var(--muted); font-size: .85rem; padding: 12px 0; line-height: 1.8; }
+  .btn { display: block; text-align: center; background: var(--main); color: #fff; border: none; border-radius: 12px; padding: 14px; font-size: .95rem; font-weight: bold; text-decoration: none; }
+  .btn.ghost { background: #fff; color: var(--main); border: 1px solid var(--line); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chip { border: 1px solid var(--line); background: var(--bg); border-radius: 16px; padding: 6px 12px; font-size: .8rem; color: var(--text); }
+  .status { font-size: .75rem; color: var(--muted); text-align: center; margin: 4px 0 12px; }
+  .err { background: #fdeaea; color: var(--danger); border-radius: 10px; padding: 10px 12px; font-size: .85rem; margin-bottom: 12px; }
+  .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px); background: #25303d; color: #fff; padding: 10px 18px; border-radius: 20px; font-size: .85rem; opacity: 0; pointer-events: none; transition: all .25s; white-space: nowrap; z-index: 50; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .spin { display: inline-block; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<header>
+  <div><h1>📒 ダイエット記録</h1><div class="sub">Claudeと続ける減量ノート</div></div>
+  <button class="icon-btn" id="reload" onclick="loadAll(true)">↻ 更新</button>
+</header>
+
+<div class="container">
+  <div id="error"></div>
+  <div class="status" id="status">読み込み中…</div>
+
+  <!-- 今日 -->
+  <div class="card">
+    <div class="card-title"><span id="today-title">📅 今日</span></div>
+    <div class="row" style="justify-content:space-between;align-items:flex-end">
+      <div><div class="muted">最新の体重</div><div class="big" id="w-now">-<small> kg</small></div></div>
+      <div style="text-align:right"><div class="diff" id="w-diff"></div><div class="muted" id="w-avg"></div></div>
+    </div>
+    <div id="today-ex" style="margin-top:12px"></div>
+  </div>
+
+  <!-- 記録する -->
+  <div class="card">
+    <div class="card-title">📝 記録する</div>
+    <a class="btn" href="https://claude.ai/code" target="_blank" rel="noopener">Claudeを開いて記録する</a>
+    <div class="muted" style="margin-top:8px">下のボタンでコマンドをコピー → Claudeに貼り付けて続きを入力</div>
+    <div class="chips">
+      <button class="chip" onclick="copyText('/log 体重')">/log 体重…</button>
+      <button class="chip" onclick="copyText('/log ')">/log 食事・運動…</button>
+      <button class="chip" onclick="copyText('/today')">/today</button>
+      <button class="chip" onclick="copyText('/week')">/week</button>
+      <button class="chip" onclick="copyText('/menu ')">/menu</button>
+    </div>
+  </div>
+
+  <!-- 今日の食事とルール -->
+  <div class="card">
+    <div class="card-title">🍽 今日の食事</div>
+    <div id="today-meals"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">✅ 食事ルール <span class="muted">○できた △一部 ×できなかった ー記録なし</span></div>
+    <table class="rules" id="today-rules"></table>
+  </div>
+
+  <!-- 目標 -->
+  <div class="card">
+    <div class="card-title">🎯 目標まで</div>
+    <div class="stat-grid">
+      <div class="stat"><div class="v" id="g-start">-</div><div class="l">開始 (kg)</div></div>
+      <div class="stat"><div class="v" id="g-change">-</div><div class="l">開始から</div></div>
+      <div class="stat"><div class="v" id="g-left">-</div><div class="l">目標まで</div></div>
+    </div>
+    <div class="progress"><span id="g-bar" style="width:0%"></span></div>
+    <div class="muted" id="g-note"></div>
+  </div>
+
+  <!-- グラフ -->
+  <div class="card">
+    <div class="card-title">📉 体重の推移
+      <div class="seg" id="range">
+        <button data-r="30" class="on">30日</button><button data-r="90">90日</button><button data-r="0">全期間</button>
+      </div>
+    </div>
+    <div class="chart-box"><canvas id="chart"></canvas></div>
+    <div class="muted" style="margin-top:6px">線は7日移動平均。日々の上下より、線の向きを見ましょう。</div>
+  </div>
+
+  <!-- 週 -->
+  <div class="card">
+    <div class="card-title">📊 この7日間 <span class="muted" id="week-range"></span></div>
+    <div class="stat-grid" style="margin-bottom:12px">
+      <div class="stat"><div class="v" id="wk-walk">-</div><div class="l">🚶 ウォーキング</div></div>
+      <div class="stat"><div class="v" id="wk-run">-</div><div class="l">🏃 ランニング</div></div>
+      <div class="stat"><div class="v" id="wk-squat">-</div><div class="l">🦵 スクワット</div></div>
+    </div>
+    <div class="muted" id="wk-weight" style="margin-bottom:10px"></div>
+    <div style="font-size:.8rem;font-weight:bold;margin-bottom:4px">ルール達成率</div>
+    <div id="wk-rules"></div>
+  </div>
+
+  <!-- 最近の記録 -->
+  <div class="card">
+    <div class="card-title">🗓 最近の記録</div>
+    <div id="recent"></div>
+  </div>
+
+  <div class="muted" style="text-align:center;line-height:1.7">記録はClaudeの <b>/log</b> で追加されます。<br>反映まで数分かかることがあります。</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== 設定 =====
+const REPO = 'ryu13131/Repository-name-diary';
+const BRANCH = 'main';
+// 公開サイトではGitHubの最新ファイルを直接読む（ローカル確認時は同じフォルダから）
+const BASE = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || location.protocol === 'file:'
+  ? './' : `https://raw.githubusercontent.com/${REPO}/${BRANCH}/`;
+const RULES = ['夕食は腹七分目', '野菜→おかず→ご飯の順', '21時以降は食べない', '帰宅前にゆで卵', '減塩を意識', '納豆・豆腐・バナナ'];
+const MEAL_KEYS = ['朝', '昼', '夕', '間食'];
+const WD = ['日', '月', '火', '水', '木', '金', '土'];
+
+// ===== 日付（日本時間） =====
+const todayJST = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Tokyo' }).format(new Date());
+const parse = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const addDays = (s, n) => { const d = parse(s); d.setDate(d.getDate() + n); return ymd(d); };
+const md = s => { const d = parse(s); return `${d.getMonth() + 1}/${d.getDate()}`; };
+const jp = s => { const d = parse(s); return `${d.getMonth() + 1}月${d.getDate()}日（${WD[d.getDay()]}）`; };
+const r1 = n => Math.round(n * 10) / 10;
+const sign = n => (r1(n) === 0 ? '±' : n > 0 ? '+' : '') + r1(n);
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+// ===== 読み込み =====
+async function getText(path, bust) {
+  const url = BASE + path + (bust ? `?t=${Date.now()}` : '');
+  const res = await fetch(url, { cache: bust ? 'no-store' : 'default' });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`${path} を読み込めませんでした（${res.status}）`);
+  return res.text();
+}
+
+// カンマ・ダブルクォート対応のCSV読み込み
+function parseCSV(text) {
+  const rows = []; let row = [], cell = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) {
+      if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+      else if (ch === '"') q = false;
+      else cell += ch;
+    } else if (ch === '"') q = true;
+    else if (ch === ',') { row.push(cell); cell = ''; }
+    else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && text[i + 1] === '\n') i++;
+      row.push(cell); cell = '';
+      if (row.some(c => c.trim() !== '')) rows.push(row);
+      row = [];
+    } else cell += ch;
+  }
+  row.push(cell); if (row.some(c => c.trim() !== '')) rows.push(row);
+  const head = (rows.shift() || []).map(h => h.trim());
+  return rows.map(r => Object.fromEntries(head.map((h, i) => [h, (r[i] || '').trim()])));
+}
+
+// 食事ファイル（## 朝 / ## 昼 / ## 夕 / ## 間食 / ## ルールチェック / ## メモ）を読む
+function parseMeal(text) {
+  const out = { meals: {}, rules: {}, memo: [] };
+  let sec = null;
+  for (const line of text.split(/\r?\n/)) {
+    const h = line.match(/^##\s+(.+?)\s*$/);
+    if (h) { sec = h[1]; continue; }
+    if (!sec) continue;
+    if (MEAL_KEYS.includes(sec) || sec === 'メモ') {
+      const m = line.match(/^\s*[-*]\s+(.+)$/);
+      if (m && m[1].trim()) {
+        if (sec === 'メモ') out.memo.push(m[1].trim());
+        else (out.meals[sec] ||= []).push(m[1].trim());
+      }
+    } else if (sec.startsWith('ルール')) {
+      const cells = line.split('|').map(c => c.trim());
+      if (cells.length >= 4 && cells[1] && !/^-+$/.test(cells[1]) && cells[1] !== 'ルール') {
+        const idx = RULES.findIndex(r => normalize(cells[1]).includes(normalize(r).slice(0, 4)));
+        if (idx >= 0) out.rules[idx] = cells[2] || 'ー';
+      }
+    }
+  }
+  return out;
+}
+const normalize = s => s.replace(/\s|→|・/g, '');
+
+function readGoal(text) {
+  const g = {};
+  if (!text) return g;
+  for (const line of text.split(/\r?\n/)) {
+    const c = line.split('|').map(x => x.trim());
+    if (c.length < 3) continue;
+    const num = parseFloat(c[2]);
+    if (c[1].startsWith('開始時の体重') && !isNaN(num)) g.start = num;
+    if (c[1].startsWith('目標体重') && !isNaN(num)) g.target = num;
+    if (c[1].startsWith('期限') && /\d{4}-\d{2}-\d{2}/.test(c[2])) g.deadline = c[2].match(/\d{4}-\d{2}-\d{2}/)[0];
+    if (c[1].startsWith('開始日') && /\d{4}-\d{2}-\d{2}/.test(c[2])) g.startDate = c[2].match(/\d{4}-\d{2}-\d{2}/)[0];
+  }
+  return g;
+}
+
+let state = null;
+async function loadAll(manual) {
+  const bust = true; // 毎回GitHubの最新を読む
+  const btn = document.getElementById('reload');
+  btn.innerHTML = '<span class="spin">↻</span> 更新';
+  document.getElementById('error').innerHTML = '';
+  try {
+    const today = todayJST();
+    const days = Array.from({ length: 7 }, (_, i) => addDays(today, -i));
+    const [w, e, g, ...meals] = await Promise.all([
+      getText('data/weight.csv', bust), getText('data/exercise.csv', bust), getText('data/goal.md', bust),
+      ...days.map(d => getText(`data/meals/${d}.md`, bust).catch(() => null)),
+    ]);
+    const weights = {};
+    parseCSV(w || 'date,weight_kg,memo').forEach(r => {
+      const kg = parseFloat(r.weight_kg);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(r.date) && kg > 0) weights[r.date] = kg;
+    });
+    const exercise = parseCSV(e || 'date,type,distance_km,minutes,memo').filter(r => /^\d{4}-\d{2}-\d{2}$/.test(r.date));
+    const mealMap = {};
+    days.forEach((d, i) => { if (meals[i]) mealMap[d] = parseMeal(meals[i]); });
+    state = { today, days, weights: Object.entries(weights).sort((a, b) => a[0].localeCompare(b[0])), exercise, goal: readGoal(g), meals: mealMap };
+    render();
+    const t = new Date();
+    document.getElementById('status').textContent = `${t.getHours()}:${String(t.getMinutes()).padStart(2, '0')} 更新`;
+    if (manual) toast('最新の記録を読み込みました');
+  } catch (err) {
+    document.getElementById('error').innerHTML = `<div class="err">📶 ${esc(err.message || '読み込めませんでした')}。電波の良い場所で「更新」を押してください。</div>`;
+    document.getElementById('status').textContent = '';
+  } finally {
+    btn.textContent = '↻ 更新';
+  }
+}
+
+// ===== 表示 =====
+function movingAvg(points) {
+  return points.map(([d]) => {
+    const from = addDays(d, -6);
+    const vals = points.filter(([x]) => x >= from && x <= d).map(p => p[1]);
+    return vals.reduce((a, b) => a + b, 0) / vals.length;
+  });
+}
+function avgBetween(points, from, to) {
+  const v = points.filter(([d]) => d >= from && d <= to).map(p => p[1]);
+  return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+}
+const exLabel = { walking: '🚶 ウォーキング', running: '🏃 ランニング', squat: '🦵 スクワット', other: '💪 その他' };
+function exLine(x) {
+  const parts = [];
+  if (parseFloat(x.distance_km)) parts.push(`${x.distance_km}km`);
+  if (parseFloat(x.minutes)) parts.push(`${x.minutes}分`);
+  if (x.memo) parts.push(esc(x.memo));
+  return `<div class="ex"><span>${exLabel[x.type] || '💪 ' + esc(x.type)}</span><span class="muted">${parts.join('・')}</span></div>`;
+}
+function markClass(v) { return v === '○' ? 'mark-o' : v === '△' ? 'mark-t' : v === '×' ? 'mark-x' : 'mark-n'; }
+
+function render() {
+  const { today, days, weights, exercise, goal, meals } = state;
+  document.getElementById('today-title').textContent = `📅 今日 ${jp(today)}`;
+
+  // 体重
+  const last = weights[weights.length - 1];
+  const prev = weights[weights.length - 2];
+  document.getElementById('w-now').innerHTML = `${last ? last[1].toFixed(1) : '-'}<small> kg</small>`;
+  const wd = document.getElementById('w-diff');
+  if (last && prev) {
+    const d = last[1] - prev[1];
+    wd.textContent = `前回比 ${sign(d)} kg`; wd.className = 'diff ' + (d > 0 ? 'up' : 'down');
+  } else wd.textContent = '';
+  const thisAvg = avgBetween(weights, addDays(today, -6), today);
+  const lastAvg = avgBetween(weights, addDays(today, -13), addDays(today, -7));
+  document.getElementById('w-avg').textContent = last ? `${md(last[0])}の記録${thisAvg ? `・7日平均 ${thisAvg.toFixed(1)}` : ''}` : '';
+
+  const exToday = exercise.filter(x => x.date === today);
+  document.getElementById('today-ex').innerHTML = exToday.length ? exToday.map(exLine).join('') : '<div class="muted">今日の運動はまだ記録がありません</div>';
+
+  // 今日の食事・ルール
+  const tm = meals[today];
+  document.getElementById('today-meals').innerHTML = tm && Object.keys(tm.meals).length
+    ? MEAL_KEYS.map(k => `<div class="meal"><span class="k">${k}</span><span>${tm.meals[k] ? tm.meals[k].map(esc).join('、') : '<span class="muted">ー</span>'}</span></div>`).join('')
+      + (tm.memo.length ? `<div class="muted" style="margin-top:6px">📝 ${tm.memo.map(esc).join(' / ')}</div>` : '')
+    : '<div class="empty">今日の食事はまだ記録がありません。<br>Claudeで「/log 昼はそば」のように送ってください。</div>';
+  document.getElementById('today-rules').innerHTML = RULES.map((r, i) => {
+    const v = (tm && tm.rules[i]) || 'ー';
+    return `<tr><td>${r}</td><td class="r ${markClass(v)}">${esc(v)}</td></tr>`;
+  }).join('');
+
+  // 目標
+  const start = goal.start || (weights[0] && weights[0][1]);
+  const cur = last && last[1];
+  document.getElementById('g-start').textContent = start ? start.toFixed(1) : '-';
+  document.getElementById('g-change').textContent = start && cur ? sign(cur - start) : '-';
+  document.getElementById('g-left').textContent = cur && goal.target ? Math.max(0, r1(cur - goal.target)) : '-';
+  let pct = 0;
+  if (start && cur && goal.target && start > goal.target) pct = Math.max(0, Math.min(100, (start - cur) / (start - goal.target) * 100));
+  document.getElementById('g-bar').style.width = pct + '%';
+  const notes = [];
+  if (goal.target) notes.push(`目標 ${goal.target}kg・達成率 ${Math.round(pct)}%`);
+  if (goal.deadline) notes.push(`期限 ${jp(goal.deadline)}`);
+  if (thisAvg && lastAvg) {
+    const monthly = (thisAvg - lastAvg) * 30 / 7;
+    const pace = monthly < -2.2 ? '少し速めのペース。食べる量は確保しましょう' : monthly <= -0.8 ? '月1〜2kgの順調なペース👍' : monthly < 0 ? 'ゆるやかに減少中' : '横ばい〜増加。週平均で様子を見ましょう';
+    notes.push(`先週比 ${sign(thisAvg - lastAvg)}kg（${pace}）`);
+  }
+  if (!goal.target) notes.push('data/goal.md に目標体重を書くと進み具合が出ます');
+  document.getElementById('g-note').textContent = notes.join('　/　');
+
+  // 週のまとめ
+  const from = days[days.length - 1];
+  document.getElementById('week-range').textContent = `${md(from)}〜${md(today)}`;
+  const wk = exercise.filter(x => x.date >= from && x.date <= today);
+  const walk = wk.filter(x => x.type === 'walking');
+  const km = walk.reduce((a, x) => a + (parseFloat(x.distance_km) || 0), 0);
+  document.getElementById('wk-walk').innerHTML = `${walk.length}回<div class="muted">${r1(km)}km</div>`;
+  document.getElementById('wk-run').textContent = `${wk.filter(x => x.type === 'running').length}回`;
+  document.getElementById('wk-squat').textContent = `${wk.filter(x => x.type === 'squat').length}回`;
+  const wkW = weights.filter(([d]) => d >= from && d <= today);
+  document.getElementById('wk-weight').textContent = wkW.length >= 2
+    ? `⚖️ ${wkW[0][1].toFixed(1)} → ${wkW[wkW.length - 1][1].toFixed(1)}kg（7日平均 ${thisAvg.toFixed(1)}kg${lastAvg ? `、先週比 ${sign(thisAvg - lastAvg)}kg` : ''}）`
+    : `🚶 ウォーキングの目安は週4〜5回・約5kmです`;
+  document.getElementById('wk-rules').innerHTML = RULES.map((r, i) => {
+    let score = 0, n = 0;
+    days.forEach(d => {
+      const v = meals[d] && meals[d].rules[i];
+      if (!v || v === 'ー') return;
+      n++; score += v === '○' ? 1 : v === '△' ? 0.5 : 0;
+    });
+    const p = n ? score / n * 100 : 0;
+    return `<div class="bar-row"><span>${r}</span><div class="bar"><span style="width:${p}%"></span></div><span class="n">${n ? `${r1(score)}/${n}` : 'ー'}</span></div>`;
+  }).join('');
+
+  // 最近の記録（今日以外の6日）
+  const rec = days.slice(1).filter(d => meals[d] || weights.some(w => w[0] === d) || exercise.some(x => x.date === d));
+  document.getElementById('recent').innerHTML = rec.length ? rec.map(d => {
+    const m = meals[d];
+    const w = weights.find(x => x[0] === d);
+    const ex = exercise.filter(x => x.date === d);
+    const ok = m ? Object.values(m.rules).filter(v => v === '○').length : 0;
+    return `<details class="day"><summary><span>${jp(d)}</span><span class="muted">${w ? w[1].toFixed(1) + 'kg　' : ''}${ex.length ? '🚶' + ex.length + '　' : ''}${m ? `○${ok}/6` : ''}</span></summary>
+      <div class="body">
+        ${m ? MEAL_KEYS.filter(k => m.meals[k]).map(k => `<div class="meal"><span class="k">${k}</span><span>${m.meals[k].map(esc).join('、')}</span></div>`).join('') : ''}
+        ${ex.map(exLine).join('')}
+        ${m && m.memo.length ? `<div class="muted" style="margin-top:4px">📝 ${m.memo.map(esc).join(' / ')}</div>` : ''}
+      </div></details>`;
+  }).join('') : '<div class="empty">まだ記録がありません</div>';
+
+  renderChart();
+}
+
+let chart = null, range = 30;
+document.getElementById('range').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  range = Number(b.dataset.r);
+  document.querySelectorAll('#range button').forEach(x => x.classList.toggle('on', x === b));
+  renderChart();
+});
+function renderChart() {
+  if (typeof Chart === 'undefined' || !state) return;
+  const all = state.weights;
+  const ma = movingAvg(all);
+  const from = range ? addDays(state.today, -(range - 1)) : '0000';
+  const idx = all.map((p, i) => i).filter(i => all[i][0] >= from);
+  const box = document.getElementById('chart').parentElement;
+  if (idx.length < 2) {
+    if (chart) { chart.destroy(); chart = null; }
+    box.style.height = 'auto';
+    box.innerHTML = '<div class="empty">体重の記録が2日分以上になるとグラフが出ます</div><canvas id="chart" style="display:none"></canvas>';
+    return;
+  }
+  if (!document.getElementById('chart').offsetParent) { box.style.height = ''; box.innerHTML = '<canvas id="chart"></canvas>'; }
+  if (chart) chart.destroy();
+  const goal = state.goal.target;
+  chart = new Chart(document.getElementById('chart'), {
+    type: 'line',
+    data: {
+      labels: idx.map(i => md(all[i][0])),
+      datasets: [
+        { label: '体重', data: idx.map(i => all[i][1]), showLine: false, pointRadius: 3, pointBackgroundColor: '#9ccfb6', borderColor: '#9ccfb6' },
+        { label: '7日平均', data: idx.map(i => r1(ma[i])), borderColor: '#2f8f6a', borderWidth: 3, pointRadius: 0, tension: .3 },
+        ...(goal ? [{ label: `目標 ${goal}kg`, data: idx.map(() => goal), borderColor: '#e0803b', borderDash: [6, 4], pointRadius: 0 }] : []),
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { boxWidth: 12, font: { size: 11 } } } },
+      scales: { y: { grid: { color: '#eef2f6' } }, x: { grid: { display: false }, ticks: { maxTicksLimit: 7 } } },
+    },
+  });
+}
+
+// ===== その他 =====
+async function copyText(t) {
+  try { await navigator.clipboard.writeText(t); toast(`「${t.trim()}」をコピーしました`); }
+  catch (e) { prompt('コピーしてください', t); }
+}
+let tt;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(tt); tt = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// アプリに戻ってきたら自動で最新を読み込む
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && state) loadAll(false); });
+
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+loadAll(false);
+</script>
+</body>
+</html>
