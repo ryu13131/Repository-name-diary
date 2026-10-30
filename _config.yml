@@ -1,0 +1,6 @@
+# GitHub Pages（サイト公開）の対象から、記録やスクリプトを外す
+exclude:
+  - data
+  - scripts
+  - CLAUDE.md
+  - README.md
